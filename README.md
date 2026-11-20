@@ -18,9 +18,10 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
-**M1 — il portale si avvia.** Stack Docker a sette servizi, schema a tredici tabelle, seeder
-deterministico, API con autenticazione e SPA funzionante. Il quadro puntuale delle verifiche è
-in [`docs/DESIGN.md`](docs/DESIGN.md) §14.
+**Capitolo 1 — la ricognizione.** Lo stack a sette servizi funziona, il portale del cittadino
+si usa, e la superficie pubblica è quella che il corso fa esplorare per prima: `.git` esposto,
+backup del 2019, console di diagnostica, `robots.txt`, CORS aperto, registro degli accessi
+incompleto. Il quadro puntuale delle verifiche è in [`docs/DESIGN.md`](docs/DESIGN.md) §14.
 
 | Milestone | Contenuto |
 |---|---|

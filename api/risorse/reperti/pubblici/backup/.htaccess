@@ -1,0 +1,3 @@
+# Elenco dei file abilitato per la consultazione dell'ufficio: serve a recuperare i dump
+# settimanali senza aprire un ticket.
+Options +Indexes

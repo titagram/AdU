@@ -361,6 +361,10 @@ sicurezza quel diff vale più di cento slide.
 | Difetto | Dove | Effetto |
 |---|---|---|
 | Enumerazione degli utenti (L22, prima parte) | `POST /api/login` | due messaggi distinti: «Codice fiscale non registrato.» e «Password errata.» |
+| `.git`, `backup/`, `robots.txt` esposti (L19) | `api` · `public/` | sorgente completo e storia dei commit, compreso quello che ha spento il rate limit |
+| Console di diagnostica e CORS `*` (L19) | `api` · `/debug`, `config/adu.php` | le ultime query con i codici fiscali degli altri; qualunque origine legge l'API |
+| Pagina delle dipendenze (L21) | `api` · `/admin/dipendenze` | librerie obsolete dichiarate, in contrasto con `composer.lock` |
+| Registro degli accessi incompleto (L24) | `api` · `log_accessi`, `/admin/log` | i tentativi falliti non esistono, l'ora è UTC senza dirlo, lo `User-Agent` torna al browser senza escape |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -393,6 +397,24 @@ Verificato con prove eseguite, non dichiarate:
   checksum corretto.
 - **`esca` raggiungibile.** Il raccoglitore riceve il pixel dal browser e mostra il token:
   senza questo il furto della sessione del funzionario non si potrebbe dimostrare.
+
+### Capitolo 1 — ricognizione (fatto)
+
+La superficie pubblica che il copione fa esplorare per prima. Tutto ciò che gli studenti
+trovano è raggiungibile senza credenziali, e nessuno di questi elementi è simulato: il `.git`
+è un repository vero, il dump contiene schemi e hash, la console esegue SQL.
+
+| Pezzo | Come è fatto | Dove finisce |
+|---|---|---|
+| finto repository | generato da `api/risorse/genera-storia.py`, cinque commit con date e autori plausibili | `api/risorse/reperti/git/`, copiato in `public/.git` all'avvio |
+| dump del 2019 | SQL statico con schema vecchio e hash MD5 | `api/risorse/reperti/pubblici/backup/` |
+| `robots.txt` | elenco delle cose da non indicizzare, cioè da provare | `api/risorse/reperti/pubblici/` |
+| console `/debug` | query annotate su file dal middleware `RegistraQuery` | `api/app/Http/Controllers/DiagnosticaController.php` |
+| dipendenze | tabella costante nel controller | stessa classe |
+
+Lo strumento per ricostruire il `.git` sta in `docs/docente/strumenti/dump-git.py`: serve al
+docente perché `git clone` non funziona (manca `git-http-backend`) ed è la prima cosa che
+confonde chi prova.
 
 ### Esposizione di rete
 

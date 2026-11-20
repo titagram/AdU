@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AutenticaJwt;
 use App\Http\Middleware\RegistraAccesso;
+use App\Http\Middleware\RegistraQuery;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registro degli accessi su tutta la superficie dell'API: è il materiale del
         // capitolo sulla difesa e il bersaglio del laboratorio L24.
         $middleware->appendToGroup('api', RegistraAccesso::class);
+
+        // DIFETTO INTENZIONALE (L19): annota le query perché la console `/debug` le mostri.
+        $middleware->appendToGroup('api', RegistraQuery::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -3,7 +3,16 @@ set -e
 
 cd /var/www/html
 
-[ -f .env ] || cp .env.example .env
+# Il `.env` si riscrive a ogni avvio: in questo laboratorio non è un file da personalizzare,
+# e così una modifica alla traccia non resta sepolta in un container vecchio.
+cp .env.example .env
+
+# DIFETTO INTENZIONALE (L19): il `.git` e la cartella dei backup finiscono nella DocumentRoot,
+# cioè nel sito pubblico. L'immagine li porta dentro `risorse/`, e all'avvio vengono copiati
+# dove Apache li serve: è esattamente l'errore che il capitolo 1 fa trovare.
+rm -rf public/.git public/backup public/robots.txt
+cp -r risorse/reperti/git public/.git
+cp -r risorse/reperti/pubblici/. public/
 
 # Attesa del database: `depends_on` non basta, MySQL accetta connessioni prima di essere
 # pronto. Il controllo è sulla connessione, non sulle tabelle: al primo avvio non esistono

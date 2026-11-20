@@ -12,6 +12,7 @@ return [
     'jwt_issuer' => env('ADU_JWT_ISSUER', 'agenzia-uscite'),
     'jwt_ttl' => (int) env('ADU_JWT_TTL', 60),
 
-    // Origini ammesse dalla SPA. In M5 diventerà '*'.
-    'cors_origins' => explode(',', env('ADU_CORS_ORIGINS', 'http://127.0.0.1:8080')),
+    // DIFETTO INTENZIONALE (L19): `*`. Serviva a far lavorare il frontend di un'altra ditta su
+    // indirizzi che cambiavano ogni giorno; è rimasto perché nessuno ha aperto un ticket.
+    'cors_origins' => explode(',', env('ADU_CORS_ORIGINS', '*')),
 ];

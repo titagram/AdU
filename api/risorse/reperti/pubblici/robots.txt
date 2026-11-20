@@ -1,0 +1,12 @@
+# Agenzia delle Uscite — portale dei tributi
+
+User-agent: *
+Disallow: /admin
+Disallow: /backup/
+Disallow: /debug
+Disallow: /sportello/
+Allow: /
+
+# Nota per i sistemi interni: l'area di amministrazione è raggiungibile anche da qui,
+# non indicizzare nulla di quanto segue.
+Sitemap: http://portale.agenzia-uscite.example/sitemap.xml

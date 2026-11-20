@@ -45,7 +45,7 @@ services:
     environment:
       # Origine da cui il browser carica la SPA: cambia se il portale si apre da un altro
       # dispositivo della tailnet, e senza questa riga il browser bloccherebbe le risposte.
-      ADU_CORS_ORIGINS: "${ADU_CORS_ORIGINS:-http://127.0.0.1:8080}"
+      ADU_CORS_ORIGINS: "${ADU_CORS_ORIGINS:-*}"
     depends_on:
       db:
         condition: service_healthy

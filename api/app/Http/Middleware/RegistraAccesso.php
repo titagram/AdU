@@ -10,9 +10,18 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Registro degli accessi.
  *
- * In M1 registra tutto, in UTC e con il codice fiscale di chi ha fatto la richiesta.
- * In M5 le omissioni saranno deliberate: niente login falliti, niente correlazione, ora
- * locale, `User-Agent` concatenato senza escape.
+ * DIFETTO INTENZIONALE (L24, capitolo 1): il registro c'è, ma non serve a ricostruire un
+ * attacco. Le omissioni sono quattro e tutte plausibili:
+ *
+ *  1. i tentativi falliti non si registrano — proprio quelli che direbbero «qualcuno sta
+ *     provando migliaia di codici fiscali»;
+ *  2. nessun identificativo di correlazione: le righe non si legano in una catena;
+ *  3. ore in UTC senza dichiararlo: chi le legge dall'Italia sbaglia di un'ora d'inverno e di
+ *     due d'estate, e non ha modo di accorgersene dalla riga;
+ *  4. `User-Agent` registrato così com'è, senza ripulire: la pagina che mostra i log lo
+ *     rimanda al browser senza escape (L25 della guida: log injection).
+ *
+ * La correzione non è aggiungere campi: è decidere cosa un registro deve raccontare.
  */
 class RegistraAccesso
 {
@@ -20,10 +29,15 @@ class RegistraAccesso
     {
         $risposta = $next($request);
 
+        // Un tentativo fallito non è un accesso: non si registra.
+        if (in_array($risposta->getStatusCode(), [401, 403], true)) {
+            return $risposta;
+        }
+
         $utente = $request->attributes->get('utente');
 
         LogAccesso::create([
-            'avvenuto_il' => now()->utc(),
+            'avvenuto_il' => now()->format('Y-m-d H:i:s'),
             'codice_fiscale' => $request->input('codice_fiscale') ?? $utente?->codice_fiscale,
             'ip' => $request->ip(),
             'metodo' => $request->method(),

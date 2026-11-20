@@ -31,69 +31,79 @@ osservare** (il segnale che dice che il lab è vivo), **se non funziona** (le ca
 
 # Capitolo 1 — Ricognizione
 
-## L19 — Esposizione e configurazione `[progetto]`
+## L19 — Esposizione e configurazione `[verificato]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
-1. `GET http://127.0.0.1:8080/robots.txt` → elenca `/admin`, `/backup/`, `/legacy/`, `/debug`.
-2. `GET http://127.0.0.1:8081/.git/HEAD` → `ref: refs/heads/main`.
-3. Scarica l'albero con `git-dumper http://127.0.0.1:8081/.git/ ./sorgente` (o a mano leggendo
-   `.git/index`). Dentro c'è il commento `// rate limit disattivato per il collaudo`.
-4. `GET /backup/` → directory listing; `GET /backup/dump-2019.sql` → schema e hash MD5.
-5. `GET /debug` → le ultime query eseguite, con i valori interpolati.
-6. Provoca un errore (`GET /api/pratiche/abc`) → stack trace con percorsi assoluti.
-7. Dal browser, `Origin: http://127.0.0.1:8026` → la risposta contiene
-   `Access-Control-Allow-Origin: *`.
-8. `GET /f24` in un `<iframe>` da un altro dominio → si incastra (manca `X-Frame-Options`).
+1. `GET http://<host>:8081/robots.txt` → elenca `/admin`, `/backup/`, `/debug`, `/sportello/`.
+   Non è un controllo di accesso: è un elenco di cose da provare.
+2. `GET http://<host>:8081/.git/HEAD` → `ref: refs/heads/main`.
+3. Ricostruisci l'albero. Con `git-dumper http://<host>:8081/.git/ ./sorgente`, oppure con
+   `python3 docs/docente/strumenti/dump-git.py http://<host>:8081/.git`. Dentro c'è il commit
+   del 2 aprile 2025: *«Collaudo di carico: disattiva temporaneamente il rate limit»*.
+4. `GET /backup/` → elenco della cartella; `GET /backup/dump-2019.sql` → schema vecchio e hash
+   MD5 delle password.
+5. `GET /debug` → le ultime query dell'API con i valori interpolati, compresi i codici fiscali
+   di chi ha fatto accesso nei minuti precedenti.
+6. `GET /debug?sql=SELECT%20*%20FROM%20tabella_inesistente` → pagina di debug del framework con
+   stack trace, percorso dei file e variabili d'ambiente. (`/api/pratiche/abc` **non** serve:
+   risponde `404` in JSON perché la rotta è vincolata ai numeri.)
+7. Preflight con `Origin: http://esempio.invalid` → `Access-Control-Allow-Origin: *`.
+8. Apri `http://<host>:8081/debug` dentro un `<iframe>` da un'altra origine → si incastra: non
+   c'è `X-Frame-Options`, quindi quella pagina si può coprire con una pagina dell'attaccante.
 
-**Cosa osservare:** il sorgente completo è leggibile senza credenziali; il dump del 2019 ha lo
-schema vecchio (colonne diverse) — serve a distinguerlo dal DB attuale.
+**Cosa osservare:** il `.git` non è un file finto, è un repository vero: chi lo ricostruisce ha
+il sorgente di oggi *e* la storia. Il dump del 2019 ha uno schema diverso da quello attuale
+(`password` a 32 caratteri, nessuna tabella `sessioni`): serve a distinguerlo dal database in
+esercizio.
 
-**Se non funziona:** verifica che il web server serva i file nascosti (in nginx serve
-`location ~ /\.` **assente**: è l'errore che stiamo dimostrando).
+**Se non funziona:** verifica che Apache serva i file nascosti. In nginx il blocco è
+`location ~ /\.` e qui **non c'è**: è l'errore che stiamo dimostrando. Se `/.git/HEAD` risponde
+`404` con `File not found`, l'entrypoint non ha copiato i reperti in `public/`.
 
-**Rimedio da spiegare:** i file di lavoro non stanno nella document root; `robots.txt` non è
-un controllo di accesso.
+**Rimedio da spiegare:** i file di lavoro non stanno nella document root; `robots.txt` non è un
+controllo di accesso; una console di debug non si spedisce in produzione nemmeno «per un giorno».
+## L21 — Dipendenze obsolete `[verificato]`
 
-## L21 — Dipendenze obsolete `[progetto]`
+**Prerequisiti:** nessuno.
 
-**Prerequisiti:** un account qualsiasi (l'endpoint è sotto `/admin` ma senza controllo di ruolo).
+**Passi:** `GET http://<host>:8081/admin/dipendenze` → tabella con pacchetto, versione, stato e
+nota.
 
-**Passi:** `GET /admin/dipendenze` → tabella con libreria, versione, data, nota.
+**Cosa osservare:** cinque voci su dieci sono obsolete, con il CVE e una riga di descrizione.
+Nessuna di quelle librerie è realmente installata: la pagina è documentativa. Il contrasto da
+mostrare è con `composer.lock`, che L19 ha già consegnato: lì ci sono le versioni vere, e non
+coincidono con quelle dichiarate.
 
-**Cosa osservare:** nessuna di queste librerie è realmente installata: la pagina è
-documentativa. Serve a discutere il processo (chi aggiorna, chi verifica), non a sfruttare un
-CVE.
+**Rimedio da spiegare:** un inventario delle dipendenze che nessuno rigenera è già vecchio il
+giorno dopo averlo pubblicato.
 
-**Rimedio da spiegare:** un inventario delle dipendenze che nessuno legge è peggio di nessun
-inventario.
+**Stato:** provata la pagina il 20 novembre 2026. La pagina non è protetta e non richiede
+account.
+## L24 — Logging insufficiente `[verificato]`
 
-## L24 — Logging insufficiente `[progetto]`
-
-**Prerequisiti:** un account qualsiasi.
+**Prerequisiti:** nessuno — il registro è pubblico.
 
 **Passi**
 
-1. `GET /api/admin/log` con il token di Giulia → si leggono i log di tutti (manca il controllo
-   di ruolo).
-2. Cerca un login fallito: non c'è. Prova a sbagliare la password dieci volte e ricontrolla.
-3. Inietta: invia una richiesta con header
-   `User-Agent: Mozilla/5.0" ,"path":"/api/admin/export","user":"admin` → la riga JSON si spezza
-   e nel log compare una voce che non esiste.
-4. Confronta l'orario del log con quello del browser: c'è lo scarto del fuso.
+1. `GET http://<host>:8081/admin/log` senza alcun token → si leggono gli accessi di tutti.
+2. Sbaglia la password dieci volte, poi ricarica il registro: **non cambia niente**. La
+   condizione che scarta le risposte `401` è la prima riga del middleware.
+3. Inietta una riga: invia una richiesta con
+   `User-Agent: Mozilla/5.0 <script>document.write("iniettato")</script>` e ricarica il
+   registro. Il testo compare nel database e viene rimandato al browser senza escape.
+4. Confronta l'ora di una riga con l'orologio: il registro scrive in UTC senza dirlo, quindi
+   d'inverno la riga è un'ora indietro rispetto a Roma, d'estate due.
 
-**Cosa osservare:** l'attacco del capitolo 4 non lascerà traccia nei log. È il finding che
-regge tutto il capitolo della difesa.
+**Cosa osservare:** il registro sembra completo e non lo è: mancano proprio gli eventi che
+direbbero che qualcuno sta provando migliaia di codici fiscali. E chi può scriverci sopra è
+chiunque, compreso il browser di chi indaga.
 
-**Rimedio da spiegare:** registra gli eventi di autenticazione, struttura il log (JSON
-canonico, non concatenazione), scrivi in UTC, separa chi può leggerlo.
-
----
-
-# Capitolo 2 — Autenticazione
-
+**Rimedio da spiegare:** registrare gli eventi di autenticazione, correlare le richieste,
+scrivere in UTC dichiarandolo, separare chi può leggere il registro. Una riga di log non
+ripulita non è un problema di log: è una XSS che arriva da un canale che nessuno controlla.
 ## L22 — Enumerazione, rate limit, sessioni `[parziale]`
 
 **Prerequisiti:** nessuno.
@@ -612,7 +622,7 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L18 | Race condition | `[progetto]` |
 | L19 | Configurazione ed esposizione | `[progetto]` |
 | L20 | Credenziali predefinite | `[progetto]` |
-| L21 | Dipendenze obsolete | `[progetto]` |
+| L21 | Dipendenze obsolete | `[verificato]` |
 | L22 | Autenticazione e sessioni | `[parziale]` |
 | L23 | Deserializzazione | `[progetto]` |
 | L24 | Logging | `[progetto]` |
