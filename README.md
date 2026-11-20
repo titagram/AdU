@@ -18,6 +18,10 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
+**Capitolo 5 — il database e la shell.** Iniezione con `UNION` sull'elenco delle pratiche,
+iniezione cieca e a tempo sulla verifica pubblica dei protocolli, iniezione di comandi nel
+generatore di report.
+
 **Capitolo 4 — il browser.** XSS riflessa sul modulo contatti, XSS conservata nelle note che il
 funzionario legge nella nuova schermata `#/sportello` (con furto del token), XSS nel DOM sul
 parametro `?torna=`. È il capitolo in cui il bersaglio diventa il browser di chi lavora.

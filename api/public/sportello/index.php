@@ -191,25 +191,105 @@ switch ($percorso) {
             redirect('/sportello/');
         }
 
-        $cf = $_SESSION['cf'];
-        $righe = db()->query(
-            "SELECT p.protocollo, p.servizio, p.stato, p.aperta_il
-             FROM pratiche p
-             WHERE p.codice_fiscale = '{$cf}'
-             ORDER BY p.aperta_il DESC
-             LIMIT 20"
-        )->fetchAll();
+        // DIFETTO INTENZIONALE (L11, capitolo 5): codice fiscale e ordinamento arrivano dalla
+        // richiesta e finiscono nella query per concatenazione. Le colonne sono sei, e questo
+        // è il numero che serve per l'UNION.
+        $cf = (string) ($_GET['cf'] ?? $_SESSION['cf']);
+        $sort = (string) ($_GET['sort'] ?? 'p.aperta_il DESC');
+
+        // Una riga sola, come la scriveva chi ha fatto lo sportello nel 2019: è anche la ragione
+        // per cui il commento `#` funziona e il payload del laboratorio è quello classico.
+        $sql = "SELECT p.protocollo, p.servizio, p.stato, p.aperta_il, p.codice_fiscale, p.id FROM pratiche p WHERE p.codice_fiscale = '{$cf}' ORDER BY {$sort} LIMIT 20";
+
+        try {
+            $righe = db()->query($sql)->fetchAll();
+        } catch (Throwable $e) {
+            // DIFETTO INTENZIONALE (L11, variante error-based): il messaggio del database
+            // arriva al browser senza essere filtrato.
+            vista('Errore nella consultazione', '<p>Si è verificato un errore.</p><pre>'
+                .e($e->getMessage()).'</pre>');
+            exit;
+        }
 
         $tabella = '';
         foreach ($righe as $r) {
             $tabella .= '<tr><td>'.e($r['protocollo']).'</td><td>'.e($r['servizio']).'</td><td>'
-                .e($r['stato']).'</td><td>'.e(substr((string) $r['aperta_il'], 0, 10)).'</td></tr>';
+                .e($r['stato']).'</td><td>'.e(substr((string) $r['aperta_il'], 0, 10)).'</td><td>'
+                .e($r['codice_fiscale']).'</td></tr>';
         }
 
         vista('Le mie pratiche', '
-            <table><thead><tr><th>Protocollo</th><th>Servizio</th><th>Stato</th><th>Aperta il</th></tr></thead>
-            <tbody>'.($tabella !== '' ? $tabella : '<tr><td colspan="4">Nessuna pratica.</td></tr>').'</tbody></table>
+            <table><thead><tr><th>Protocollo</th><th>Servizio</th><th>Stato</th><th>Aperta il</th>'
+            .'<th>Contribuente</th></tr></thead>
+            <tbody>'.($tabella !== '' ? $tabella : '<tr><td colspan="5">Nessuna pratica.</td></tr>').'</tbody></table>
             <p>Per il dettaglio di una pratica rivolgersi all\'ufficio competente.</p>
+        ');
+        break;
+
+    case '/verifica':
+        // DIFETTO INTENZIONALE (L12, capitolo 5): verifica pubblica dello stato di una pratica,
+        // con il numero di protocollo concatenato. Nessuna autenticazione, nessun limite.
+        $protocollo = (string) ($_GET['protocollo'] ?? '');
+        $esito = null;
+
+        if ($protocollo !== '') {
+            try {
+                $esito = db()->query(
+                    "SELECT protocollo, stato FROM pratiche WHERE protocollo = '{$protocollo}' LIMIT 1"
+                )->fetch();
+            } catch (Throwable $e) {
+                vista("Verifica dello stato", '<p>Errore nella verifica.</p><pre>'.e($e->getMessage()).'</pre>');
+                exit;
+            }
+        }
+
+        $risposta = '';
+        if ($protocollo !== '') {
+            $risposta = $esito === false
+                ? '<p class="errore">Nessuna pratica con questo numero.</p>'
+                : '<p>La pratica <strong>'.e((string) $esito['protocollo']).'</strong> risulta '
+                    .e((string) $esito['stato']).'.</p>';
+        }
+
+        vista('Verifica dello stato', '
+            <p>Inserisca il numero di protocollo che le è stato rilasciato.</p>
+            <form method="get" action="/sportello/verifica">
+              <label for="protocollo">Numero di protocollo</label>
+              <input id="protocollo" name="protocollo" placeholder="2025/004102">
+              <button type="submit">Verifica</button>
+            </form>
+            '.$risposta.'
+        ');
+        break;
+
+    case '/report':
+        if (! isset($_SESSION['cf'])) {
+            redirect('/sportello/');
+        }
+
+        if (! in_array($_SESSION['ruolo'] ?? '', ['funzionario', 'amministratore'], true)) {
+            vista('Riservata al personale', '<p>Questa pagina è riservata agli uffici.</p>');
+            exit;
+        }
+
+        $dal = (string) ($_GET['dal'] ?? '');
+        $al = (string) ($_GET['al'] ?? '');
+        $uscita = null;
+
+        if ($dal !== '' && $al !== '') {
+            // DIFETTO INTENZIONALE (L13, capitolo 5): le date finiscono in un comando di shell.
+            // Lo script di stampa è vecchio e prende gli argomenti dalla riga di comando.
+            $comando = 'php /var/www/html/public/sportello/report.php --dal='.$dal.' --al='.$al.' 2>&1';
+            $uscita = shell_exec($comando);
+        }
+
+        vista('Report delle pratiche', '
+            <form method="get" action="/sportello/report">
+              <label for="dal">Dal</label><input id="dal" name="dal" value="2025-01-01">
+              <label for="al">Al</label><input id="al" name="al" value="2025-12-31">
+              <button type="submit">Genera</button>
+            </form>
+            '.($uscita !== null ? '<pre>'.e((string) $uscita).'</pre>' : '').'
         ');
         break;
 

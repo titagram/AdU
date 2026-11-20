@@ -381,6 +381,9 @@ sicurezza quel diff vale più di cento slide.
 | XSS riflessa (L14) | `api` · `GET /api/contatti` | il modulo pubblico restituisce l'input concatenato |
 | XSS conservata (L15) | `api` · note; `web` · `#/sportello` | la nota del cittadino esegue nel browser del funzionario e legge il token |
 | XSS nel DOM (L16) | `web` · `?torna=` | codice eseguito senza che il server lo veda |
+| Iniezione SQL con UNION (L11) | `api` · `/sportello/pratiche` | tutta la tabella `utenti`, hash compresi |
+| Iniezione cieca e a tempo (L12) | `api` · `/sportello/verifica` (pubblica) | estrazione bit per bit dal tempo di risposta |
+| Iniezione di comandi (L13) | `api` · `/sportello/report` | `shell_exec` con le date concatenate |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -479,6 +482,16 @@ in cui il difetto vive: `nota.innerHTML = n.corpo` in `web/app.js`.
 La stessa nota è resa, senza escape, anche dalla pagina legacy `/sportello/pratica/{id}`: due
 sink per un solo dato, come capita nei sistemi che hanno sostituito un'interfaccia senza spegnere
 la vecchia.
+
+### Capitolo 5 — il database e la shell (fatto)
+
+Il capitolo torna nello sportello, dove le query sono concatenate davvero e la connessione ha
+`MYSQL_ATTR_MULTI_STATEMENTS` attivo. La query dell'elenco è scritta **su una riga sola**, come
+la scriveva chi l'ha fatta nel 2019: è anche la condizione perché il payload classico con `#`
+funzioni, e la ragione per cui la trappola `/*` va spiegata.
+
+Il report è uno script separato (`public/sportello/report.php`) richiamato con `shell_exec`:
+il difetto nasce da un riuso ragionevole, non da una scorciatoia.
 
 ### Esposizione di rete
 
