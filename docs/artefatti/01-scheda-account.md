@@ -7,7 +7,7 @@ Area riservata · credenziali di prova
 |---|---|
 | **Nome** | Giulia |
 | **Cognome** | Neri |
-| **Codice fiscale** | `NRAGLI90A41H501X` |
+| **Codice fiscale** | `NREGLI90A41H501G` |
 | **Data di nascita** | 01/01/1990 |
 | **Residenza** | Via delle Fornaci 14 — 00165 Roma (RM) |
 | **PEC** | giulia.neri@pec.example.it |

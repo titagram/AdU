@@ -105,7 +105,7 @@ Note progettuali:
 | Scelta | Motivo | Alternativa scartata |
 |---|---|---|
 | Laravel ultima versione stabile (fissata in M1) | le protezioni giuste sono il *default*, quindi ogni difetto è un errore riconoscibile del developer | una versione vecchia "notoriamente vulnerabile": insegnerebbe un bug del framework, non un errore di progetto |
-| PHP 8.3 nell'immagine | l'host Debian 12 ha PHP 8.2, ma non serve installarne nessuno: lo porta il container | PHP sull'host: dipendenze da gestire su ogni macchina della scuola |
+| PHP 8.4 nell'immagine | l'host Debian 12 ha PHP 8.2, ma non serve installarne nessuno: lo porta il container. La 8.4 è la minima che Laravel 13 accetta davvero | PHP sull'host: dipendenze da gestire su ogni macchina della scuola |
 | MySQL 8 | fedele alla realtà dei gestionali pubblici, e `PDO::query` consente le query impilate | MariaDB: compatibile, ma il comportamento multi-istruzione va verificato |
 | SPA in JS vanilla, moduli ES | due origini reali (CORS dimostrabile), `localStorage` credibile, **zero build step** | Vue/React + Vite: aggiunge Node e un passaggio che può fallire in aula |
 | Blade + CSS scritto a mano | un solo comando per partire | Tailwind: introduce il build step che vogliamo evitare |
@@ -296,13 +296,14 @@ e i riferimenti nelle schede non cambino a ogni `lab:reset`.
 
 ## 11. Logging (pensato per una lezione futura con Splunk o WAF)
 
-`api` scrive su un volume montato `logs/app.jsonl`, una riga JSON per richiesta:
+`api` registra ogni richiesta nella tabella `log_accessi` (una riga per richiesta, con metodo,
+percorso, stato, indirizzo, codice fiscale e `User-Agent`). Sta nel database e non su file
+perché così è interrogabile dall'applicazione stessa: l'endpoint che lo mostra è il bersaglio
+del laboratorio L24.
 
-```json
-{"ts":"2025-11-03 09:12:44","user":"s.nome","ip":"172.19.0.4","method":"GET","path":"/api/sportello/pratica/118","status":200,"ua":"Mozilla/5.0 ..."}
-```
-
-Omissioni **intenzionali**, che rendono il capitolo difesa interessante:
+In M1 il registro è **corretto**: scrive tutto, in UTC, con il codice fiscale di chi ha fatto
+la richiesta e con lo `User-Agent` integro. Le omissioni sotto elencate arrivano in M5, quando
+il corso introduce il difetto da trovare:
 
 - i **login falliti non sono registrati** (l'evento più utile per ricostruire un attacco);
 - nessun identificativo di correlazione: l'attacco non si vede come catena;
@@ -325,28 +326,97 @@ peggio di nessuna scheda.
 
 ---
 
-## 13. Comandi operativi (previsti, M1)
+## 13. Comandi operativi
 
 ```bash
-docker compose up -d            # avvio
+docker compose up -d                            # avvio
 docker compose exec api php artisan lab:reset   # ripristino stato pulito
-docker compose down -v          # distruzione completa
+docker compose exec api php artisan adu:stato   # fotografia del database
+docker compose down -v                          # distruzione completa
 ```
 
-`lab:reset` deve: rifare `migrate:fresh --seed`, svuotare allegati e log, ripristinare i file
-"sporchi" (`/.git` finto, `/backup/`). Senza questo comando il laboratorio si usa una volta
-sola.
+`lab:reset` rifà `migrate:fresh --seed`, svuota gli allegati e ricarica il seed deterministico.
+I file "sporchi" della superficie legacy (`/.git` finto, `/backup/`) si aggiungono in M5 con il
+resto della superficie di ricognizione: finché non esistono, `lab:reset` non ha nulla da
+ripristinare oltre al database.
 
 ---
 
 ## 14. Stato e verifiche
 
-| Elemento | Stato |
+### Fatto in M0
+
+Documentazione: questo file, il copione, il catalogo dei 26 finding, il modello di rapporto,
+gli artefatti e la guida per il docente.
+
+### Fatto in M1 — stack, schema, seeder, portale
+
+Sette servizi su due reti, schema a tredici tabelle, seeder deterministico, API con JWT e SPA
+che si avvia. **Il codice è scritto in modo corretto**: nessuna vulnerabilità è ancora
+presente. È una scelta deliberata — M2–M6 introducono i difetti uno per capitolo, quindi il
+`git log` del progetto mostra il commit esatto che rompe ogni controllo. Per un corso di
+sicurezza quel diff vale più di cento slide.
+
+Verificato con prove eseguite, non dichiarate:
+
+| Elemento | Prova |
 |---|---|
-| Documentazione (questo file, copione, catalogo, rapporto) | fatto in M0 |
-| Stack Docker, schema, seeder | non iniziato (M1) |
-| Lab L01–L26 | non iniziati (M2–M6) |
-| Verifica di avvio dello stack | **non eseguita** (prevista in M1) |
+| Avvio completo dello stack | `docker compose up -d`, sette container `running`, `db` e `mail` sani |
+| Migrazioni e seed | `adu:stato`: 204 utenti, 204 contribuenti, 580 pratiche, 72 cartelle, 371 rimborsi |
+| Invariante I1 | prima riga di `utenti` = Mario Rossi, ruolo `cittadino` |
+| Invariante I5 | l'amministratore nasce con `reset_disabilitato` |
+| Determinismo del seed | due `lab:reset` danno lo stesso conteggio e lo stesso MD5 del contenuto delle cartelle |
+| Codici fiscali | validati contro il vettore noto `RSSMRA80A01H501U` |
+| Login e area | token emesso, `/api/me`, `/api/cartelle`, `/api/pratiche` rispondono |
+| Autorizzazione | la cartella di un altro contribuente risponde `404` |
+| Messaggio d'errore unico | credenziali sbagliate e codice fiscale inesistente danno la stessa risposta |
+| Rate limit | sesto tentativo respinto con `429` |
+| CORS | origine ammessa `127.0.0.1:8080`, altre origini rifiutate dal browser |
+| Revoca del token | dopo `/api/logout` lo stesso token risponde `401` |
+| SPA | provata in Chromium headless: home, accesso, area, cartelle, dettaglio, senza errori di console |
+| Servizi interni | `anagrafe` risponde solo con `admin`/`admin`, `banca` solo con la chiave |
+
+### Assunzioni verificate
+
+- **Query impilate.** `PDO::query()` su MySQL 8 **rifiuta** più istruzioni separate da `;`.
+  Funzionano solo se la connessione apre con `PDO::MYSQL_ATTR_MULTI_STATEMENTS => true`.
+  Conseguenza per il progetto: la superficie legacy dello sportello dovrà aprire la propria
+  connessione con quell'attributo attivo, il che è insieme realistico (chi lo fa lo fa per
+  lanciare script di manutenzione) e didatticamente utile, perché il difetto sta in una riga
+  di configurazione. Provato sui due casi, prima e dopo l'attributo.
+- **Codice fiscale.** L'algoritmo è verificato su un vettore noto; i codici generati hanno
+  checksum corretto.
+- **`esca` raggiungibile.** Il raccoglitore riceve il pixel dal browser e mostra il token:
+  senza questo il furto della sessione del funzionario non si potrebbe dimostrare.
+
+### Assunzioni ancora da verificare
+
+| Assunzione | Dove si verifica |
+|---|---|
+| La UNION ha bisogno di sei colonne nella ricerca pratiche | M2, quando l'endpoint esiste |
+| Il payload XSS sopravvive al salvataggio delle note | M4 |
+| La race condition sul rimborso è riproducibile in aula | M6 |
+
+### Note di percorso
+
+Tre cose non erano previste e sono emerse costruendo M1:
+
+- **Il codice fiscale sbagliava le vocali.** La norma prende consonanti e poi vocali, non
+  consonanti e poi tutte le lettere: con la versione iniziale «Neri» diventava `NRN` invece di
+  `NRE`. Scoperto confrontando con il vettore noto `RSSMRA80A01H501U`; ora quel confronto è la
+  prova che l'algoritmo è corretto.
+- **La scheda account raccontava un'altra persona.** Il codice fiscale e l'indirizzo scritti
+  negli artefatti non coincidevano con quelli generati. Sono ora allineati al seed: è il primo
+  controllo che fa uno studente.
+- **`PDO::query()` non accetta più istruzioni.** Il laboratorio delle query impilate richiede
+  `MYSQL_ATTR_MULTI_STATEMENTS`, non è il comportamento predefinito. Il difetto diventa quindi
+  una riga di configurazione, che è più interessante da trovare di una concatenazione.
+
+### Non verificato
+
+- Invio reale di email: Mailpit è avviato ma il portale non manda ancora messaggi (M2).
+- Comportamento con più di un browser reale e con la stampa della pagina.
+- Prestazioni con carichi diversi dall'uso in aula.
 | Repository remoto | **da definire**: manca l'URL del repository GitHub |
 
 Limiti noti: nessuna parte di questo documento è stata verificata su un sistema in esecuzione.

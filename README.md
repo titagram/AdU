@@ -18,14 +18,19 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
-**M0 — documentazione.** Non c'è ancora codice applicativo: vedi
-[`docs/DESIGN.md`](docs/DESIGN.md) §14 per lo stato puntuale e i limiti.
+**M1 — il portale si avvia.** Stack Docker a sette servizi, schema a tredici tabelle, seeder
+deterministico, API con autenticazione e SPA funzionante. Il quadro puntuale delle verifiche è
+in [`docs/DESIGN.md`](docs/DESIGN.md) §14.
 
 | Milestone | Contenuto |
 |---|---|
-| M0 | documenti di progetto (questa milestone) |
+| M0 | documenti di progetto |
 | M1 | stack Docker, schema, seeder, portale che si avvia |
 | M2–M6 | i laboratori, un blocco per capitolo del corso |
+
+> Il codice di M1 è **corretto**: nessuna vulnerabilità è ancora presente. M2–M6 introducono i
+> difetti uno per capitolo, quindi il `git log` del progetto mostra il commit esatto che rompe
+> ogni controllo. Per un corso di sicurezza quel diff vale più di cento slide.
 
 ## Come è fatto il corso
 
@@ -47,16 +52,47 @@ Lo scopo reale è capire quanto in profondità si arriva, e dove passa la linea.
 | [`docs/docente/GUIDA_SFRUTTAMENTO.md`](docs/docente/GUIDA_SFRUTTAMENTO.md) | guida operativa per il docente — **da non consegnare alla classe** |
 | [`docs/artefatti/`](docs/artefatti/) | la mail del direttore, la scheda account, il ritaglio |
 
-## Avvio (previsto in M1)
+## Avvio
 
 ```bash
-docker compose up -d                              # portale su http://127.0.0.1:8080
+docker compose up -d --build                      # primo avvio: costruisce e popola il database
+docker compose exec api php artisan adu:stato     # fotografia dei dati caricati
 docker compose exec api php artisan lab:reset     # ripristino dello stato pulito
-docker compose down -v                            # distruzione completa
+docker compose down -v                            # distruzione completa, volumi compresi
+docker compose --profile test run --rm test       # suite di test (SQLite in memoria)
 ```
 
-Requisiti: Docker Engine con il plugin Compose. Il PHP lo porta l'immagine: sull'host non serve
-installare nulla.
+Requisiti: Docker Engine con il **plugin Compose** (`docker compose version` deve rispondere).
+Il PHP lo porta l'immagine: sull'host non serve installare nulla. Il primo avvio richiede
+qualche minuto, perché costruisce l'immagine e scarica le dipendenze.
+
+Il seed gira una volta sola: se il database è già popolato, `up` non lo tocca. Per tornare allo
+stato iniziale c'è `lab:reset`.
+
+### Indirizzi
+
+| Servizio | Indirizzo | Note |
+|---|---|---|
+| Portale | <http://127.0.0.1:8080> | la SPA |
+| API | <http://127.0.0.1:8081> | `GET /api/health` per un controllo rapido |
+| Posta | <http://127.0.0.1:8025> | Mailpit: tutto ciò che il portale spedisce |
+| `esca` | <http://127.0.0.1:8026> | il raccoglitore dell'attaccante, non fa parte del portale |
+
+Tutti i binding sono su `127.0.0.1`: da un'altra macchina della rete questi indirizzi non
+rispondono, ed è voluto.
+
+### Accessi
+
+| Persona | Codice fiscale | Password | Ruolo |
+|---|---|---|---|
+| Giulia Neri | `NREGLI90A41H501G` | `ciao123` | cittadino (account dimostrativo) |
+| Mario Rossi | `RSSMRA85M01F205T` | `password` | cittadino (prima riga della tabella) |
+| Sara Bianchi | `BNCSRA79C54L219X` | `Bianchi!2025#Sportello` | funzionario |
+| Aldo Marchetti | — | `Amministratore!2025#Sicuro` | amministratore |
+
+Le credenziali delle persone inventate sono materiale del corso: i cittadini hanno password
+deboli perché devono poter essere indovinate, il personale interno no. La scheda account
+consegnata agli studenti è in [`docs/artefatti/01-scheda-account.md`](docs/artefatti/01-scheda-account.md).
 
 ## Perché esiste
 

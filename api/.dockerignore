@@ -1,0 +1,14 @@
+# Il vendor lo costruisce l'immagine: quello locale è per i test dell'host (se c'è).
+vendor/
+node_modules/
+
+# La cache di bootstrap contiene la mappa dei provider generata in locale: se entra
+# nell'immagine, `package:discover` cerca classi che nell'immagine non esistono.
+bootstrap/cache/*.php
+
+.env
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/allegati/*

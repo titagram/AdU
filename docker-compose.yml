@@ -1,0 +1,124 @@
+# Agenzia delle Uscite — laboratorio locale.
+#
+# Sette servizi, due reti. Solo `web`, `api` ed `esca` parlano con l'host; tutto il resto
+# vive su `backend`, che è `internal: true` e quindi non ha uscita verso Internet.
+# I binding sono su 127.0.0.1: nessuna porta è raggiungibile da un'altra macchina.
+#
+#   http://127.0.0.1:8080  portale (SPA)
+#   http://127.0.0.1:8081  API
+#   http://127.0.0.1:8025  Mailpit (posta in uscita)
+#   http://127.0.0.1:8026  esca (raccoglitore dell'attaccante)
+
+name: agenzia-uscite
+
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: adu-web
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./docker/web.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./api
+      dockerfile: docker/Dockerfile
+    container_name: adu-api
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    volumes:
+      # Gli allegati sono file veri, non righe di database: senza un volume sparirebbero
+      # a ogni ricreazione del container, lasciando righe che puntano al nulla.
+      - allegati:/var/www/html/storage/app/allegati
+    networks:
+      - frontend
+      - backend
+
+  db:
+    image: mysql:8.0
+    container_name: adu-db
+    environment:
+      MYSQL_DATABASE: adu
+      MYSQL_USER: adu
+      MYSQL_PASSWORD: adu
+      MYSQL_ROOT_PASSWORD: radice
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-dati:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-pradice"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks:
+      - backend
+
+  mail:
+    image: axllent/mailpit:latest
+    container_name: adu-mail
+    ports:
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - backend
+
+  anagrafe:
+    build:
+      context: ./servizi/anagrafe
+    container_name: adu-anagrafe
+    networks:
+      - backend
+
+  banca:
+    build:
+      context: ./servizi/banca
+    container_name: adu-banca
+    networks:
+      - backend
+
+  # Solo per i test: `docker compose --profile test run --rm test`
+  test:
+    profiles: ["test"]
+    build:
+      context: ./api
+      dockerfile: docker/Dockerfile
+      target: sviluppo
+    environment:
+      APP_KEY: base64:ydgQA+Py6Dw4H7EyJbE+cw/3ELuZ1qvvM33lGCpfn/g=
+    networks:
+      - backend
+
+  esca:
+    build:
+      context: ./servizi/esca
+    container_name: adu-esca
+    ports:
+      - "127.0.0.1:8026:80"
+    networks:
+      - frontend
+
+volumes:
+  db-dati:
+  allegati:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true

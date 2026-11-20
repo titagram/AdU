@@ -1,0 +1,221 @@
+:root {
+    --blu: #0b3c5d;
+    --blu-scuro: #072a42;
+    --blu-tenue: #e8eef4;
+    --testo: #1c2b36;
+    --testo-tenue: #5b6b78;
+    --bordo: #d3dbe2;
+    --sfondo: #f4f6f8;
+    --oro: #b28b3c;
+    --rosso: #a4262c;
+    --verde: #1f6b3f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+    color: var(--testo);
+    background: var(--sfondo);
+    line-height: 1.55;
+}
+
+a { color: var(--blu); }
+
+/* --- intestazione ---------------------------------------------------------------- */
+
+.intestazione {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem 2rem;
+    background: var(--blu);
+    color: #fff;
+    border-bottom: 4px solid var(--oro);
+}
+
+.marchio {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    color: #fff;
+    text-decoration: none;
+}
+
+.marchio-segno {
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    position: relative;
+    flex: none;
+}
+
+.marchio-segno::after {
+    content: "";
+    position: absolute;
+    inset: .45rem;
+    border-radius: 50%;
+    background: var(--oro);
+}
+
+.marchio-testo strong { display: block; font-size: 1.05rem; letter-spacing: .01em; }
+.marchio-testo small { display: block; font-size: .74rem; opacity: .8; }
+
+.navigazione { display: flex; align-items: center; gap: 1.4rem; font-size: .92rem; }
+.navigazione a { color: #fff; text-decoration: none; opacity: .9; }
+.navigazione a:hover { opacity: 1; text-decoration: underline; }
+
+.navigazione .accesso {
+    border: 1px solid rgba(255, 255, 255, .6);
+    padding: .4rem .9rem;
+    border-radius: 3px;
+    opacity: 1;
+}
+
+.avviso-laboratorio {
+    background: #fff6dd;
+    border-bottom: 1px solid #e8d9a8;
+    color: #5a4a12;
+    font-size: .85rem;
+    padding: .55rem 2rem;
+}
+
+.avviso-laboratorio code { font-size: .82rem; }
+
+/* --- struttura ------------------------------------------------------------------- */
+
+.contenuto {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 2.2rem 1.5rem 4rem;
+    min-height: 55vh;
+}
+
+h1 { font-size: 1.7rem; color: var(--blu-scuro); margin: 0 0 .4rem; font-weight: 600; }
+h2 { font-size: 1.15rem; color: var(--blu-scuro); margin: 2rem 0 .6rem; }
+p.sottotitolo { color: var(--testo-tenue); margin-top: 0; }
+
+.pannello {
+    background: #fff;
+    border: 1px solid var(--bordo);
+    border-radius: 4px;
+    padding: 1.4rem 1.6rem;
+    margin: 1.2rem 0;
+}
+
+.griglia { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+
+.tessera {
+    background: #fff;
+    border: 1px solid var(--bordo);
+    border-top: 3px solid var(--blu);
+    border-radius: 4px;
+    padding: 1.1rem 1.2rem;
+}
+
+.tessera h3 { margin: 0 0 .35rem; font-size: 1rem; color: var(--blu-scuro); }
+.tessera p { margin: 0 0 .8rem; color: var(--testo-tenue); font-size: .9rem; }
+.tessera .numero { font-size: 1.9rem; font-weight: 600; color: var(--blu); }
+
+/* --- tabelle --------------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; background: #fff; font-size: .92rem; }
+th, td { text-align: left; padding: .65rem .7rem; border-bottom: 1px solid var(--bordo); }
+th { background: var(--blu-tenue); color: var(--blu-scuro); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; }
+tbody tr:hover { background: #fafbfc; }
+td.numero, th.numero { text-align: right; font-variant-numeric: tabular-nums; }
+
+.etichetta {
+    display: inline-block;
+    font-size: .74rem;
+    padding: .1rem .5rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.etichetta.in_sospeso, .etichetta.aperta, .etichetta.richiesto { background: #fdf0e3; color: #8a4b0f; border-color: #f0d3b4; }
+.etichetta.pagata, .etichetta.chiusa, .etichetta.pagato { background: #e7f3ea; color: var(--verde); border-color: #c2dfc9; }
+.etichetta.annullata, .etichetta.annullato { background: #f7e7e8; color: var(--rosso); border-color: #ecc6c8; }
+.etichetta.in_lavorazione, .etichetta.approvato { background: var(--blu-tenue); color: var(--blu); border-color: #c6d7e6; }
+
+/* --- moduli ---------------------------------------------------------------------- */
+
+.modulo { max-width: 27rem; }
+
+.campo { margin-bottom: 1rem; }
+.campo label { display: block; font-size: .88rem; font-weight: 600; margin-bottom: .3rem; }
+.campo input {
+    width: 100%;
+    padding: .6rem .7rem;
+    border: 1px solid #b9c5cf;
+    border-radius: 3px;
+    font-size: .95rem;
+    font-family: inherit;
+}
+.campo input:focus { outline: 2px solid var(--blu-tenue); border-color: var(--blu); }
+.campo .aiuto { font-size: .8rem; color: var(--testo-tenue); margin-top: .25rem; }
+
+button, .pulsante {
+    display: inline-block;
+    background: var(--blu);
+    color: #fff;
+    border: 0;
+    border-radius: 3px;
+    padding: .65rem 1.3rem;
+    font-size: .95rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+button:hover, .pulsante:hover { background: var(--blu-scuro); }
+button.secondario, .pulsante.secondario { background: transparent; color: var(--blu); border: 1px solid var(--blu); }
+
+.messaggio { padding: .7rem .9rem; border-radius: 3px; margin: 1rem 0; font-size: .9rem; }
+.messaggio.errore { background: #f9e8e9; border: 1px solid #ecc6c8; color: var(--rosso); }
+.messaggio.esito { background: #e7f3ea; border: 1px solid #c2dfc9; color: var(--verde); }
+
+/* --- dettaglio ------------------------------------------------------------------- */
+
+.righe-dettaglio { display: grid; grid-template-columns: 12rem 1fr; gap: .45rem 1rem; font-size: .93rem; }
+.righe-dettaglio dt { color: var(--testo-tenue); }
+.righe-dettaglio dd { margin: 0; }
+
+.ellegale { white-space: pre-wrap; }
+.note { border-left: 3px solid var(--bordo); padding: .2rem 0 .2rem 1rem; margin: 0 0 1rem; }
+.note .meta { font-size: .8rem; color: var(--testo-tenue); }
+
+/* --- piede ----------------------------------------------------------------------- */
+
+.piede {
+    border-top: 1px solid var(--bordo);
+    background: #fff;
+    padding: 1.4rem 2rem;
+    font-size: .84rem;
+    color: var(--testo-tenue);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.navigazione-utente { text-decoration: none; border-bottom: 1px dotted rgba(255, 255, 255, .5); }
+
+.azione-uscita { background: none; border: 0; color: #fff; cursor: pointer; font: inherit; text-decoration: underline; }
+
+@media (max-width: 640px) {
+    /* Le tabelle a cinque colonne non stanno in 390 px: scorrono dentro il pannello invece
+       di allargare la pagina, che altrimenti si muove tutta in orizzontale. */
+    .pannello { overflow-x: auto; padding: 1rem; }
+    table { min-width: 32rem; }
+
+    .intestazione { padding: .8rem 1rem; }
+    .navigazione { gap: .9rem; font-size: .85rem; }
+    .contenuto { padding: 1.5rem 1rem 3rem; }
+    .righe-dettaglio { grid-template-columns: 1fr; }
+}
