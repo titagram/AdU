@@ -223,3 +223,7 @@ button.secondario, .pulsante.secondario { background: transparent; color: var(--
 /* Sportello del funzionario e striscia di benvenuto. */
 .striscia-informativa { background: #eef3f7; border-left: 4px solid #2c5f8a; padding: .7rem 1rem; margin-bottom: 1.2rem; font-size: .92rem; }
 .nota-cittadino { border-left: 3px solid #cfdae3; padding: .3rem .6rem; margin: .35rem 0; font-size: .9rem; background: #fafcfd; }
+
+/* Le tessere cliccabili della pagina Servizi. */
+a.tessera { display: block; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
+a.tessera:hover { border-color: #2c5f8a; box-shadow: 0 2px 10px rgba(44,95,138,.12); }

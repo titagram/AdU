@@ -220,23 +220,36 @@ function vistaCasa() {
 }
 
 function vistaServizi() {
+    // Le tessere che portano da qualche parte sono collegamenti veri: prima erano `div` con
+    // l'etichetta «accesso da area riservata» e nessun modo di arrivarci.
+    const disponibili = [
+        ['Posizione fiscale', 'Cartelle, importi e scadenze.', '#/cartelle'],
+        ['Pratiche', 'Richieste in corso e loro stato.', '#/pratiche'],
+        ['Rimborsi', 'Liquidazioni e accrediti.', '#/rimborsi'],
+        ['Assistenza', 'Contatti e segnalazioni.', `${API}/api/contatti`],
+    ];
+
+    const inArrivo = [
+        ['Dichiarazioni', 'Modelli presentati negli ultimi anni.'],
+        ['Appuntamenti', 'Prenotazione allo sportello territoriale.'],
+    ];
+
     mostra(
         el('h1', { testo: 'Servizi' }),
         el('p', { classe: 'sottotitolo', testo: 'Elenco dei servizi disponibili al cittadino.' }),
         el('div', { classe: 'griglia' },
-            ...[
-                ['Posizione fiscale', 'Cartelle, importi e scadenze.'],
-                ['Pratiche', 'Richieste in corso e loro stato.'],
-                ['Rimborsi', 'Liquidazioni e accrediti.'],
-                ['Dichiarazioni', 'Modelli presentati negli ultimi anni.'],
-                ['Appuntamenti', 'Prenotazione allo sportello territoriale.'],
-                ['Assistenza', 'Contatti e segnalazioni.'],
-            ].map(([titolo, descrizione]) =>
+            ...disponibili.map(([titolo, descrizione, href]) =>
+                el('a', { classe: 'tessera', href },
+                    el('h3', { testo: titolo }),
+                    el('p', { testo: descrizione }),
+                    el('span', { classe: 'etichetta approvato', testo: 'disponibile' }))),
+            ...inArrivo.map(([titolo, descrizione]) =>
                 el('div', { classe: 'tessera' },
                     el('h3', { testo: titolo }),
                     el('p', { testo: descrizione }),
-                    el('span', { classe: 'etichetta in_lavorazione', testo: 'accesso da area riservata' }))),
+                    el('span', { classe: 'etichetta in_lavorazione', testo: 'non ancora disponibile' }))),
         ),
+        el('p', { classe: 'sottotitolo', testo: 'Le prime tre voci richiedono l\'accesso all\'area riservata.' }),
     );
 }
 
@@ -577,6 +590,9 @@ async function instrada() {
     const [, vista, riservata] = trovata;
 
     if (riservata && !stato.token) {
+        // Chi arriva qui da una tessera della pagina Servizi merita una riga che spieghi perché
+        // si trova davanti al modulo di accesso.
+        avviso = 'Per usare questo servizio serve l\'accesso all\'area riservata.';
         location.hash = '#/accedi';
         return;
     }
