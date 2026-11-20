@@ -53,7 +53,11 @@ COPY --from=vendor /app /var/www/html
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
 RUN chmod +x /usr/local/bin/entrypoint \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    # I file arrivano dal contesto di build con i permessi della macchina che costruisce: con un
+    # umask severo `.htaccess` resta illeggibile per Apache, che risponde 403 a ogni richiesta
+    # pur avendo la configurazione giusta. Meglio non dipendere dai permessi dell'host.
+    && chmod -R a+rX /var/www/html
 
 EXPOSE 80
 

@@ -52,7 +52,14 @@ class InvariantiTest extends TestCase
         }
     }
 
-    public function test_il_login_usa_un_solo_messaggio_per_ogni_errore(): void
+    /**
+     * L22 — enumerazione degli utenti.
+     *
+     * Questo test è scritto al contrario di come dovrebbe essere, e lo è apposta: descrive il
+     * difetto introdotto nel capitolo 2, così il diff fra il test corretto e questo racconta
+     * da solo cosa è cambiato. Chi corregge il laboratorio deve vederlo fallire.
+     */
+    public function test_il_login_rivela_se_un_codice_fiscale_esiste(): void
     {
         $inesistente = $this->postJson('/api/login', [
             'codice_fiscale' => 'AAAAAA00A00A000A',
@@ -66,10 +73,11 @@ class InvariantiTest extends TestCase
 
         $inesistente->assertStatus(401);
         $sbagliata->assertStatus(401);
-        $this->assertSame(
+
+        $this->assertNotSame(
             $inesistente->json('errore'),
             $sbagliata->json('errore'),
-            'i due errori non devono essere distinguibili'
+            'L22: i due errori sono distinguibili, e questo è il difetto da trovare'
         );
     }
 

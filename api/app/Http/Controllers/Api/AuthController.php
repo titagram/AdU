@@ -14,9 +14,14 @@ class AuthController extends Controller
     /**
      * Accesso.
      *
-     * M1: una sola risposta per credenziali sbagliate (niente enumerazione), hash verificato
-     * con `Hash::check`, nessuna query costruita a mano. In M2 questo metodo diventerà il
-     * laboratorio L10/L22: due messaggi distinti e concatenazione di stringhe.
+     * DIFETTO INTENZIONALE (L22, capitolo 2): il metodo distingue due casi che l'utente non
+     * dovrebbe poter distinguere — «codice fiscale non registrato» e «password errata». Chi
+     * prova un codice fiscale alla volta scopre quali esistono nell'archivio, e da lì passa
+     * alle password del dizionario (L08). La correzione è una sola risposta per ogni
+     * credenziale sbagliata, indipendente dal ramo che l'ha generata.
+     *
+     * Il resto dell'hash è ancora corretto: `Hash::check`, nessuna query costruita a mano.
+     * La concatenazione arriva con L10, nel capitolo 2.
      */
     public function login(Request $request): JsonResponse
     {
@@ -27,8 +32,12 @@ class AuthController extends Controller
 
         $utente = Utente::where('codice_fiscale', strtoupper($dati['codice_fiscale']))->first();
 
-        if ($utente === null || ! Hash::check($dati['password'], $utente->password)) {
-            return response()->json(['errore' => 'Credenziali non valide.'], 401);
+        if ($utente === null) {
+            return response()->json(['errore' => 'Codice fiscale non registrato.'], 401);
+        }
+
+        if (! Hash::check($dati['password'], $utente->password)) {
+            return response()->json(['errore' => 'Password errata.'], 401);
         }
 
         if (! $utente->attivo) {

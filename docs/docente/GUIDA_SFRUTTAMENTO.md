@@ -94,19 +94,23 @@ canonico, non concatenazione), scrivi in UTC, separa chi può leggerlo.
 
 # Capitolo 2 — Autenticazione
 
-## L22 — Enumerazione, rate limit, sessioni `[progetto]`
+## L22 — Enumerazione, rate limit, sessioni `[parziale]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
-1. `POST /api/login` con un CF inventato → *"Codice fiscale non presente in archivio."*
-2. Con il CF di Giulia e password sbagliata → *"Password non corretta."*
+1. `POST /api/login` con un CF inventato → *"Codice fiscale non registrato."*
+2. Con il CF di Giulia e password sbagliata → *"Password errata."*
 3. Con un CF valido e la password di un dizionario → accesso.
 4. Ripeti venti volte in trenta secondi: nessun blocco, nessun ritardo, nessun CAPTCHA.
 5. Apri `/sportello` con il cookie di sessione: dopo il login il cookie **non cambia**
    (session fixation).
 6. Fai logout e riusa il cookie salvato: la sessione legacy è ancora valida.
+
+**Stato sul portale in esecuzione:** i passi 1–3 funzionano (provati il 20 novembre 2026). I
+passi 4–6 richiedono la superficie legacy dello sportello e arrivano con il capitolo 2: finché
+non ci sono, il rate limit è attivo e il logout revoca davvero il token.
 
 **Cosa osservare:** il passo 1 e il passo 2 insieme permettono di separare l'enumerazione
 degli utenti dalla ricerca della password. Il commento `// rate limit disattivato` del
@@ -609,7 +613,7 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L19 | Configurazione ed esposizione | `[progetto]` |
 | L20 | Credenziali predefinite | `[progetto]` |
 | L21 | Dipendenze obsolete | `[progetto]` |
-| L22 | Autenticazione e sessioni | `[progetto]` |
+| L22 | Autenticazione e sessioni | `[parziale]` |
 | L23 | Deserializzazione | `[progetto]` |
 | L24 | Logging | `[progetto]` |
 | L25 | SSRF | `[progetto]` |

@@ -352,10 +352,15 @@ gli artefatti e la guida per il docente.
 ### Fatto in M1 — stack, schema, seeder, portale
 
 Sette servizi su due reti, schema a tredici tabelle, seeder deterministico, API con JWT e SPA
-che si avvia. **Il codice è scritto in modo corretto**: nessuna vulnerabilità è ancora
-presente. È una scelta deliberata — M2–M6 introducono i difetti uno per capitolo, quindi il
+che si avvia. Il codice è nato corretto: M2–M6 introducono i difetti uno per capitolo, quindi il
 `git log` del progetto mostra il commit esatto che rompe ogni controllo. Per un corso di
 sicurezza quel diff vale più di cento slide.
+
+**Difetti già inseriti** (e quindi già sfruttabili):
+
+| Difetto | Dove | Effetto |
+|---|---|---|
+| Enumerazione degli utenti (L22, prima parte) | `POST /api/login` | due messaggi distinti: «Codice fiscale non registrato.» e «Password errata.» |
 
 Verificato con prove eseguite, non dichiarate:
 

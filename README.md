@@ -28,9 +28,10 @@ in [`docs/DESIGN.md`](docs/DESIGN.md) §14.
 | M1 | stack Docker, schema, seeder, portale che si avvia |
 | M2–M6 | i laboratori, un blocco per capitolo del corso |
 
-> Il codice di M1 è **corretto**: nessuna vulnerabilità è ancora presente. M2–M6 introducono i
-> difetti uno per capitolo, quindi il `git log` del progetto mostra il commit esatto che rompe
-> ogni controllo. Per un corso di sicurezza quel diff vale più di cento slide.
+> M1 è nato **corretto**, e i difetti entrano uno per capitolo: il `git log` mostra il commit
+> esatto che rompe ogni controllo, e per un corso di sicurezza quel diff vale più di cento
+> slide. Il primo è già dentro: il login dice se il codice fiscale esiste (L22), così il
+> capitolo sull'autenticazione può cominciare dalla pagina di accesso.
 
 ## Come è fatto il corso
 
