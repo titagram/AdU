@@ -384,6 +384,10 @@ sicurezza quel diff vale più di cento slide.
 | Iniezione SQL con UNION (L11) | `api` · `/sportello/pratiche` | tutta la tabella `utenti`, hash compresi |
 | Iniezione cieca e a tempo (L12) | `api` · `/sportello/verifica` (pubblica) | estrazione bit per bit dal tempo di risposta |
 | Iniezione di comandi (L13) | `api` · `/sportello/report` | `shell_exec` con le date concatenate |
+| CSRF sul cambio IBAN (L06) | `/sportello` · `POST /sportello/rimborso/{id}/iban` | il rimborso parte verso il conto dell'attaccante |
+| Race condition (L18) | `api` · `POST /api/rimborsi/{id}/richiedi` | tre richieste di pagamento per un rimborso |
+| Credenziali predefinite sull'anagrafe (L20) | `anagrafe` · `/admin` | `admin`/`admin` su un servizio senza porte pubbliche |
+| SSRF (L25) | `api` · `POST /api/allegati/da-url` | la posta di tutti e l'anagrafe, dalla stessa API |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -492,6 +496,13 @@ funzioni, e la ragione per cui la trappola `/*` va spiegata.
 
 Il report è uno script separato (`public/sportello/report.php`) richiamato con `shell_exec`:
 il difetto nasce da un riuso ragionevole, non da una scorciatoia.
+
+### Capitolo 6 — soldi e perimetro (fatto)
+
+L'ultimo capitolo mette insieme le scale: il CSRF che sposta un rimborso, la corsa che lo paga tre
+volte, le credenziali predefinite su un servizio interno e l'SSRF che lo rende raggiungibile.
+`anagrafe` e `banca` non hanno porte pubblicate: si raggiungono solo dall'API, ed è la catena
+L25 → L20 che il laboratorio vuole insegnare.
 
 ### Esposizione di rete
 

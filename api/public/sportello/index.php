@@ -93,8 +93,66 @@ function redirect(string $destinazione): void
     exit;
 }
 
+$metodo = $_SERVER['REQUEST_METHOD'];
 $percorso = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
 $percorso = '/'.trim(substr($percorso, strlen('/sportello')), '/');
+
+// DIFETTO INTENZIONALE (L06, capitolo 6): cambio IBAN senza token anti-CSRF.
+// Il form della pagina-esca è su un altro sito, ma la richiesta parte con il cookie di sessione
+// della vittima: il portale non ha modo di distinguerla da un'azione volontaria.
+if ($metodo === 'POST' && preg_match('#^/rimborso/(\d+)/iban$#', $percorso, $pezzi) === 1) {
+    if (! isset($_SESSION['cf'])) {
+        redirect('/sportello/');
+    }
+
+    $rimborso = db()->query(
+        "SELECT * FROM rimborsi WHERE id = ".(int) $pezzi[1]." AND codice_fiscale = '".$_SESSION['cf']."'"
+    )->fetch();
+
+    if ($rimborso === false) {
+        vista('Rimborso inesistente', '<p>Nessun rimborso con questo numero.</p>');
+        exit;
+    }
+
+    $iban = (string) ($_POST['iban'] ?? '');
+    db()->prepare("UPDATE rimborsi SET iban = ?, updated_at = NOW() WHERE id = ?")
+        ->execute([$iban, (int) $pezzi[1]]);
+
+    vista('IBAN aggiornato', '<p>Il nuovo IBAN <strong>'.e($iban).'</strong> è stato registrato.</p>'
+        .'<p><a href="/sportello/rimborsi">Torna ai rimborsi</a></p>');
+    exit;
+}
+
+// DIFETTO INTENZIONALE (L05 secondo vettore, capitolo 6): il ruolo è un campo come gli altri.
+if ($metodo === 'POST' && preg_match('#^/utenti/(\d+)$#', $percorso, $pezzi) === 1) {
+    if (! isset($_SESSION['cf'])) {
+        redirect('/sportello/');
+    }
+
+    if (! in_array($_SESSION['ruolo'] ?? '', ['funzionario', 'amministratore'], true)) {
+        vista('Riservata al personale', '<p>Questa pagina è riservata agli uffici.</p>');
+        exit;
+    }
+
+    $campi = [];
+    $valori = [];
+    foreach (['ruolo', 'attivo', 'reset_disabilitato'] as $campo) {
+        if (array_key_exists($campo, $_POST)) {
+            $campi[] = $campo.' = ?';
+            $valori[] = $_POST[$campo];
+        }
+    }
+
+    if ($campi !== []) {
+        $valori[] = (int) $pezzi[1];
+        db()->prepare('UPDATE utenti SET '.implode(', ', $campi).' WHERE id = ?')->execute($valori);
+    }
+
+    $utente = db()->query('SELECT id, email, ruolo, attivo FROM utenti WHERE id = '.(int) $pezzi[1])->fetch();
+
+    vista('Utente aggiornato', '<pre>'.e(json_encode($utente, JSON_PRETTY_PRINT)).'</pre>');
+    exit;
+}
 
 // DIFETTO INTENZIONALE (L15, capitolo 4): il funzionario apre la nota del cittadino.
 if (preg_match('#^/pratica/(\d+)$#', $percorso, $pezzi) === 1) {

@@ -18,6 +18,10 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
+**Capitolo 6 — soldi e perimetro.** CSRF sul cambio IBAN, race condition che paga tre volte lo
+stesso rimborso, credenziali predefinite sull'anagrafe interna, SSRF che raggiunge la posta e
+l'anagrafe. Il capitolo in cui i difetti si compongono in una catena.
+
 **Capitolo 5 — il database e la shell.** Iniezione con `UNION` sull'elenco delle pratiche,
 iniezione cieca e a tempo sulla verifica pubblica dei protocolli, iniezione di comandi nel
 generatore di report.

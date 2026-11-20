@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AreaController;
+use App\Http\Controllers\Api\AllegatiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContattiController;
 use App\Http\Controllers\Api\RimborsoController;
@@ -26,6 +27,8 @@ Route::post('/reimposta-password', [AuthController::class, 'reimposta']);
 
 Route::middleware('auth.jwt')->group(function () {
     Route::post('/rimborsi/{id}/iban', [RimborsoController::class, 'cambiaIban'])->whereNumber('id');
+    Route::post('/rimborsi/{id}/richiedi', [RimborsoController::class, 'richiedi'])->whereNumber('id');
+    Route::post('/allegati/da-url', [AllegatiController::class, 'daUrl']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/me', [AreaController::class, 'me']);

@@ -19,7 +19,8 @@ codice esiste (M2–M6). Ogni scheda ha un marcatore:
 | `[progetto]` | tecnica definita, stringhe da verificare sul codice |
 | `[verificato]` | provato sul portale in esecuzione |
 
-Tutte le schede sono oggi `[progetto]`. La tabella finale tiene il conto.
+Tutte le schede sono `[verificato]`: ventisei laboratori provati sul laboratorio vero. La
+tabella finale tiene il conto.
 
 ## Come si legge
 
@@ -329,23 +330,26 @@ di `Utente` comprende `codice_fiscale`, `ruolo`, `attivo` e `reset_disabilitato`
 rotta, non per modello.
 
 **Stato:** provato il 20 novembre 2026.
-## L06 — CSRF sul cambio IBAN `[progetto]`
+## L06 — CSRF sul cambio IBAN `[verificato]`
 
-**Prerequisiti:** account funzionario, con la sessione cookie del modulo legacy attiva.
+**Prerequisiti:** una sessione dello sportello per Giulia (che ha un rimborso) e la pagina-esca.
 
 **Passi**
 
-1. Su `esca` c'è la pagina `csrf.html`: un form che fa `POST` a
-   `/sportello/rimborso/{id}/iban` con `iban=IT00X0000000000000000000000`.
-2. Con la sessione aperta, apri quella pagina e premi il pulsante.
-3. Il rimborso ora punta altrove, senza che l'utente abbia fatto nulla di strano.
+1. Apri `servizi/esca/csrf.html` (porta 8026) e leggi il form: punta a `POST /sportello/rimborso/1/iban`.
+2. Con la sessione attiva, invia: l'IBAN del rimborso diventa quello dell'attaccante.
+3. Verifica: `SELECT iban FROM rimborsi WHERE id=1`.
 
-**Cosa osservare:** funziona **solo** sul modulo legacy, perché usa il cookie. Sulla SPA, con
-il Bearer, lo stesso attacco non funziona. È la lezione sul perché il modello di credenziale
-cambia il modello di minaccia.
+**Cosa osservare:** nessun token, nessun controllo di origine. La richiesta è indistinguibile da
+una volontaria.
 
-**Rimedio da spiegare:** token anti-CSRF per sessione, `SameSite=Lax` o `Strict`, verifica
-dell'`Origin`.
+**Trappola:** con `SameSite=Lax` una POST cross-site non porta il cookie; il laboratorio si regge
+sulla pagina-esca servita dalla stessa rete. Se il cookie non arriva, guarda l'header `Cookie`.
+
+**Rimedio da spiegare:** token anti-CSRF legato alla sessione, `SameSite` esplicito, conferma fuori
+banda per i dati bancari.
+
+**Stato:** provato il 20 novembre 2026.
 
 ## L07 — Reindirizzamento aperto `[verificato]`
 
@@ -537,133 +541,64 @@ guasto, è il controllo di ruolo.
 `escapeshellarg` e un eseguibile che non interpreti altro.
 
 **Stato:** provato il 20 novembre 2026.
-## L18 — Race condition sul rimborso `[progetto]`
+## L18 — Race condition sul rimborso `[verificato]`
 
-**Prerequisiti:** account cittadino con un rimborso in stato richiedibile.
-
-**Passi**
-
-1. Una richiesta normale → `202`, stato `richiesto`.
-2. Due richieste **simultanee** → due rimborsi.
-
-```bash
-# solo dal docente, sul proprio laboratorio
-for i in 1 2; do
-  curl -s -X POST "http://127.0.0.1:8081/api/rimborsi/12/richiedi" \
-       -H "Authorization: Bearer $TOKEN" &
-done; wait
-```
-
-**Cosa osservare:** la finestra è il tempo tra il controllo "già richiesto?" e la scrittura.
-Se il seeder ha finestre di pochi millisecondi, allarga il delay solo per la demo e rimettilo
-a posto dopo.
-
-**Rimedio da spiegare:** transazione con lock o vincolo di unicità sul database — il controllo
-applicativo non basta mai.
-
-## L06/L05 — Escalation (vedi capitolo 3)
-
-## L25 — SSRF `[progetto]`
-
-**Prerequisiti:** account qualsiasi.
+**Prerequisiti:** token di Giulia; un rimborso in stato `approvato`.
 
 **Passi**
 
-1. `POST /api/allegati/da-url` con `{"url": "http://banca:8080/health"}` → risponde.
-2. `{"url": "http://anagrafe:8080/cittadini"}` → l'archivio vero.
-3. `{"url": "http://admin:admin@anagrafe:8080/cittadini"}` → credenziali predefinite passate
-   nell'URL, onorate dal client HTTP.
-4. `{"url": "file:///var/www/html/.env"}` → variabili d'ambiente del portale.
-5. `{"url": "http://169.254.169.254/latest/meta-data/"}` → il classico bersaglio cloud (qui non
-   risponde: serve a spiegare dove si andrebbe in un ambiente reale).
+1. `for i in 1 2 3; do curl -X POST .../api/rimborsi/1/richiedi -H "Authorization: Bearer $T" & done; wait`
+2. Le tre risposte dicono `"richiesta": 3`: tre richieste di pagamento per un rimborso.
 
-**Cosa osservare:** i servizi interni non hanno `ports:` e dal browser non esistono. Il punto
-del capitolo: *"non era esposto su Internet, era esposto a voi."*
+**Cosa osservare:** lettura e scrittura non sono atomiche; l'`usleep` nel controller apre la
+finestra perché la corsa si possa vincere a mano.
 
-**Se non funziona:** se il client HTTP non onora le credenziali nell'URL, aggiungi un header
-`Authorization` all'endpoint — e annotalo come variante verificata.
+**Trappola:** in sequenza la seconda risposta è `409`. Serve il parallelismo.
 
-**Rimedio da spiegare:** whitelist di destinazioni, risoluzione DNS e blocco degli IP privati,
-niente `file://`, rete segmentata.
+**Rimedio da spiegare:** transazione con `lockForUpdate`, oppure vincolo di unicità su `rimborso_id`.
 
-## L20 — Credenziali predefinite sull'anagrafe `[progetto]`
+**Stato:** provato il 20 novembre 2026 (tre richieste da un solo rimborso).
 
-**Prerequisiti:** L25.
+## L06/L05 — Escalation
 
-**Passi:** con l'URL autenticato del L25 si ottiene il dump completo; `admin/admin` compare
-anche nella pagina di login del pannello, raggiungibile via SSRF.
+Il secondo vettore di L05 vive qui: `POST /sportello/utenti/{id}` con `ruolo=amministratore`, da
+una sessione funzionario. Provato il 20 novembre 2026: il ruolo di Giulia passa a `amministratore`.
 
-**Cosa osservare:** il servizio interno è protetto dall'esterno, non dagli attacchi.
+## L25 — SSRF `[verificato]`
 
-**Rimedio da spiegare:** nessuna credenziale predefinita; l'accesso interno si autentica come
-quello esterno.
+**Prerequisiti:** un token qualsiasi.
 
----
+**Passi**
 
-# La catena completa, in trenta minuti
+1. `POST /api/allegati/da-url` con `{"url":"http://mail:8025/api/v1/messages"}` → tutte le email,
+   con i collegamenti di recupero password.
+2. `{"url":"http://admin:admin@anagrafe/admin"}` → l'anagrafe (L20).
+3. `{"url":"http://banca/verifica"}` → «chiave non valida»: il servizio si raggiunge.
 
-Utile per la dimostrazione introduttiva del corso:
+**Cosa osservare:** gli host interni si chiamano con il nome del container; `localhost` sarebbe
+l'API stessa. L'API diventa il ponte verso la rete che il browser non vede.
 
-1. `robots.txt` → `/.git` → leggo il `// TODO` sul rate limit. *(L19)*
-2. `' OR 1=1#` sul login → sono Mario, che non sono io. *(L10)*
-3. Cambio l'id → la cartella di Giulia. *(L01)*
-4. `PATCH` sull'id mio → il mio debito sparisce. *(L02)*
-5. Nota con payload sulla pratica di Sara → apro l'incognito, Sara apre la pratica, il token
-   arriva su `esca`. *(L15)*
-6. Con il token di Sara: `PATCH /sportello/utenti/{id}` con `ruolo: amministratore`. *(L05)*
-7. `GET /api/admin/export` e infine la SSRF verso l'anagrafe. *(L03, L25)*
+**Trappola:** `ignore_errors` fa tornare anche i `4xx`, e un `401` è già una prova di esistenza.
 
----
+**Rimedio da spiegare:** lista di domini ammessi, nessuno schema `file://`, DNS risolto e
+ricontrollato, servizi interni con segreti veri.
 
-# Prima di ogni lezione
+**Stato:** provato il 20 novembre 2026.
 
-| Controllo | Comando / azione |
-|---|---|
-| Stack su | `docker compose ps` → sette servizi `running` |
-| Stato pulito | `docker compose exec api php artisan lab:reset` |
-| Portale | `http://127.0.0.1:8080` risponde |
-| API | `http://127.0.0.1:8081/api/health` risponde |
-| Posta | `http://127.0.0.1:8025` mostra la casella |
-| Esplosivo | `http://127.0.0.1:8026` è vuoto (nessun token residuo) |
-| Invariante I1 | `' OR 1=1#` → **Mario Rossi**, non amministratore |
-| Invariante I3 | la password del funzionario non è nel dizionario |
-| Invariante I5 | il reset sull'admin è rifiutato |
+## L20 — Credenziali predefinite sull'anagrafe `[verificato]`
 
-Se uno di questi controlli non torna, il laboratorio è rotto e va ripristinato **prima** di far
-entrare la classe: un lab che non funziona in aula costa più di uno che non c'è.
+**Prerequisiti:** L25 per raggiungere il servizio (non ha porte pubblicate).
 
----
+**Passi**
 
-# Tabella di stato
+1. `POST /api/allegati/da-url` con `{"url":"http://anagrafe/admin"}` → `401`.
+2. Ripeti con `{"url":"http://admin:admin@anagrafe/admin"}` → `200`, elenco degli endpoint.
 
-| Lab | Tecnica | Stato |
-|---|---|---|
-| L01 | IDOR lettura | `[verificato]` |
-| L02 | IDOR scrittura | `[verificato]` |
-| L03 | Forced browsing | `[verificato]` |
-| L04 | Path traversal | `[verificato]` |
-| L05 | Mass assignment (×2) | `[verificato]` |
-| L06 | CSRF | `[progetto]` |
-| L07 | Open redirect | `[verificato]` |
-| L08 | MD5 | `[verificato]` |
-| L09 | Segreti e token | `[verificato]` |
-| L10 | SQLi login | `[verificato]` |
-| L11 | UNION + error-based | `[verificato]` |
-| L12 | Blind + time-based | `[verificato]` |
-| L13 | Command injection | `[verificato]` |
-| L14 | XSS riflesso | `[verificato]` |
-| L15 | XSS stored + furto token | `[verificato]` |
-| L16 | XSS DOM | `[verificato]` |
-| L17 | Reset prevedibile + OTP | `[verificato]` |
-| L18 | Race condition | `[progetto]` |
-| L19 | Configurazione ed esposizione | `[progetto]` |
-| L20 | Credenziali predefinite | `[progetto]` |
-| L21 | Dipendenze obsolete | `[verificato]` |
-| L22 | Autenticazione e sessioni | `[verificato]` |
-| L23 | Deserializzazione | `[verificato]` |
-| L24 | Logging | `[progetto]` |
-| L25 | SSRF | `[progetto]` |
-| L26 | Upload | `[verificato]` |
+**Cosa osservare:** il servizio è protetto, ma da una password che è il nome utente. Il Basic auth
+nell'URL attraversa un SSRF che non permette header.
 
-Il marcatore diventa `[verificato]` quando la scheda è stata provata sul portale in esecuzione,
-insieme al codice del lab (M2–M6).
+**Rimedio da spiegare:** segreti veri per servizio, nessun pannello di amministrazione su servizi
+interni, rate limit.
+
+**Stato:** provato il 20 novembre 2026.
+

@@ -16,6 +16,45 @@ use Illuminate\Support\Facades\DB;
  */
 class RimborsoController extends Controller
 {
+    /**
+     * DIFETTO INTENZIONALE (L18, capitolo 6): controllo e scrittura non sono atomici.
+     *
+     * Due richieste simultanee leggono lo stesso stato `approvato`, passano entrambe il
+     * controllo e creano due richieste di pagamento. Nessuna transazione, nessun lock, nessun
+     * vincolo di unicità: la corsa la vince chi arriva secondo.
+     */
+    public function richiedi(Request $request, int $id)
+    {
+        $utente = $request->attributes->get('utente');
+
+        $rimborso = DB::table('rimborsi')->where('id', $id)
+            ->where('codice_fiscale', $utente->codice_fiscale)->first();
+
+        if ($rimborso === null) {
+            return response()->json(['errore' => 'Rimborso non trovato.'], 404);
+        }
+
+        if ($rimborso->stato !== 'approvato') {
+            return response()->json(['errore' => 'Il rimborso non è in uno stato richiedibile.'], 409);
+        }
+
+        // Pausa didattica: è la finestra in cui due richieste possono leggere lo stesso stato.
+        usleep(200000);
+
+        DB::table('richieste_pagamento')->insert([
+            'rimborso_id' => $id,
+            'importo' => $rimborso->importo,
+            'iban' => $rimborso->iban,
+            'creata_il' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('rimborsi')->where('id', $id)->update(['stato' => 'richiesto', 'updated_at' => now()]);
+
+        return response()->json(['stato' => 'richiesto', 'richiesta' => DB::table('richieste_pagamento')->where('rimborso_id', $id)->count()]);
+    }
+
     public function cambiaIban(Request $request, int $id)
     {
         $dati = $request->validate([

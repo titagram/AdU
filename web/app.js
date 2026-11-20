@@ -512,6 +512,44 @@ async function vistaSportello() {
     );
 }
 
+
+/**
+ * Epilogo: la scala dei privilegi e la lista dei rimedi, in una pagina sola.
+ * Non è un difetto: è il riassunto che serve al docente per chiudere il corso.
+ */
+function vistaEpilogo() {
+    const passi = [
+        ['anonimo', 'Legge i protocolli pubblici, il registro, il `.env` via allegati.'],
+        ['cittadino', 'Entra con una password del dizionario o con `\' OR 1=1#`; poi legge i fascicoli altrui.'],
+        ['altro cittadino', 'Si prende un fascicolo con l\'IDOR o cambia il proprio codice fiscale.'],
+        ['funzionario', 'Conquista il browser di chi lavora con una nota, e il token non scade.'],
+        ['amministratore', 'Il ruolo è un campo modificabile, e `admin`/`admin` vale sull\'anagrafe interna.'],
+    ];
+
+    const rimedi = [
+        'Query parametrizzate, ovunque, senza eccezioni.',
+        'Autorizzazione sull\'oggetto, non sulla rotta.',
+        'Nessun `innerHTML` su contenuto esterno, più una CSP.',
+        'Token con scadenza e revoca; segreti fuori dal bundle.',
+        'Transazioni e vincoli per i soldi; niente `shell_exec`.',
+        'Liste di domini ammessi per le richieste in uscita.',
+        'Log degli accessi falliti, con orario e fuso dichiarati.',
+    ];
+
+    mostra(
+        el('h1', { testo: 'Epilogo' }),
+        el('p', { classe: 'sottotitolo', testo: 'Dove si arriva, partendo da un modulo di contatti.' }),
+        el('div', { classe: 'pannello' },
+            el('table', {},
+                el('thead', {}, el('tr', {}, el('th', { testo: 'Livello' }), el('th', { testo: 'Come ci si arriva' }))),
+                el('tbody', {}, ...passi.map(([livello, come]) =>
+                    el('tr', {}, el('td', { testo: livello }), el('td', { testo: come })))))),
+        el('h2', { testo: 'I rimedi, uno per capitolo' }),
+        el('ul', {}, ...rimedi.map((r) => el('li', { testo: r }))),
+        el('p', { classe: 'sottotitolo', testo: 'Nessuno di questi difetti richiede un attaccante esperto: richiede che nessuno abbia guardato.' }),
+    );
+}
+
 const rotte = [
     [/^#\/$/, vistaCasa],
     [/^#\/servizi$/, vistaServizi],
@@ -524,6 +562,7 @@ const rotte = [
     [/^#\/pratica\/(\d+)$/, vistaPratica, true],
     [/^#\/rimborsi$/, vistaRimborsi, true],
     [/^#\/sportello$/, vistaSportello, true],
+    [/^#\/epilogo$/, vistaEpilogo],
 ];
 
 async function instrada() {
