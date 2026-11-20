@@ -20,9 +20,11 @@ lo stesso stato e passano tutte.
 
 | Riga | Cosa fa |
 |---|---|
-| `api/app/Http/Controllers/Api/RimborsoController.php` | legge lo stato, poi scrive |
+| `api/app/Http/Controllers/Api/RimborsoController.php:26` | `richiedi()`: legge, controlla, scrive, in tre passi separati |
+| `api/app/Http/Controllers/Api/RimborsoController.php:37` | il controllo sullo stato: qui due richieste leggono lo stesso `approvato` |
+| `api/app/Http/Controllers/Api/RimborsoController.php:42` | `usleep(200000)` apre la finestra: senza, la corsa è difficile da vincere a mano |
+| `api/app/Http/Controllers/Api/RimborsoController.php:44` | l'inserimento in `richieste_pagamento`, senza vincolo di unicità |
 | `api/database/migrations/2025_11_04_000001_create_richieste_pagamento.php` | la tabella che conta i danni |
-| `api/app/Http/Controllers/Api/RimborsoController.php` | `usleep(200000)` apre la finestra: senza, la corsa è difficile da vincere a mano |
 
 ## Trappole
 
