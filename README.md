@@ -51,6 +51,7 @@ Lo scopo reale è capire quanto in profondità si arriva, e dove passa la linea.
 | [`docs/RAPPORTO_AUDIT.md`](docs/RAPPORTO_AUDIT.md) | modello di rapporto per gli studenti |
 | [`docs/docente/GUIDA_SFRUTTAMENTO.md`](docs/docente/GUIDA_SFRUTTAMENTO.md) | guida operativa per il docente — **da non consegnare alla classe** |
 | [`docs/artefatti/`](docs/artefatti/) | la mail del direttore, la scheda account, il ritaglio |
+| [`.env.example`](.env.example) | dove esporre il laboratorio e quali origini ammette l'API |
 
 ## Avvio
 
@@ -71,15 +72,50 @@ stato iniziale c'è `lab:reset`.
 
 ### Indirizzi
 
-| Servizio | Indirizzo | Note |
+| Servizio | Percorso | Note |
 |---|---|---|
-| Portale | <http://127.0.0.1:8080> | la SPA |
-| API | <http://127.0.0.1:8081> | `GET /api/health` per un controllo rapido |
-| Posta | <http://127.0.0.1:8025> | Mailpit: tutto ciò che il portale spedisce |
-| `esca` | <http://127.0.0.1:8026> | il raccoglitore dell'attaccante, non fa parte del portale |
+| Portale | porta `8080` | la SPA |
+| API | porta `8081` | `GET /api/health` per un controllo rapido |
+| Posta | porta `8025` | Mailpit: tutto ciò che il portale spedisce |
+| `esca` | porta `8026` | il raccoglitore dell'attaccante, non fa parte del portale |
 
-Tutti i binding sono su `127.0.0.1`: da un'altra macchina della rete questi indirizzi non
-rispondono, ed è voluto.
+Il prefisso dipende da `ADU_BIND_IP`: con il valore predefinito è `127.0.0.1`, quindi gli
+indirizzi sono `http://127.0.0.1:8080` e così via, e da un'altra macchina non rispondono.
+
+### Aprirlo sulla tailnet
+
+Per usare il portale dal portatile o dal telefono, senza esporlo a Internet, si lega alle porte
+all'indirizzo Tailscale di questa macchina:
+
+```bash
+tailscale ip -4                    # per esempio 100.75.95.33
+cp .env.example .env               # poi modificare le due righe
+```
+
+```ini
+ADU_BIND_IP=100.75.95.33
+ADU_CORS_ORIGINS=http://100.75.95.33:8080
+```
+
+```bash
+docker compose up -d
+```
+
+Da quel momento il portale risponde su `http://<indirizzo-tailscale>:8080` a tutti i
+dispositivi della tailnet, e solo a quelli: il traffico viaggia dentro WireGuard, quindi non
+serve un certificato. `ADU_CORS_ORIGINS` deve contenere **esattamente** l'indirizzo con cui apri
+il portale, altrimenti il browser blocca le risposte dell'API.
+
+Due trappole, entrambe già viste:
+
+- se Tailscale è spento, l'indirizzo non esiste e Docker non riesce a legare le porte: i
+  container non partono. `tailscale status` prima di `compose up`;
+- se in aula cambia l'indirizzo della macchina, vanno aggiornate entrambe le righe di `.env`.
+
+> **Questa applicazione è deliberatamente vulnerabile.** Sulla tailnet la vedono i tuoi
+> dispositivi e nessun altro, ed è il compromesso giusto per una lezione. Non va mai legata a
+> un indirizzo pubblico né messa dietro un tunnel aperto: chi la raggiunge può leggere i dati di
+> tutti i contribuenti finti e, dopo M2, eseguire codice sul server.
 
 ### Accessi
 

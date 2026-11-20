@@ -31,6 +31,14 @@
     <button type="submit">Conferma il conto</button>
 </form>
 
+<script>
+    // L'indirizzo del portale dipende da come è raggiungibile in aula: l'attaccante lo conosce,
+    // qui si ricava dall'host da cui è servita la pagina, così funziona anche da un telefono
+    // o da un portatile collegato alla tailnet.
+    document.getElementById('modulo').action =
+        `http://${location.hostname}:8081/sportello/rimborso/1/iban`;
+</script>
+
 <p class="nota">
     Nel laboratorio l'indirizzo del modulo si cambia qui sopra nel sorgente della pagina.
     Se il portale non ha una sessione aperta, la richiesta viene rifiutata: è il senso del

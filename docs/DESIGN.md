@@ -389,6 +389,23 @@ Verificato con prove eseguite, non dichiarate:
 - **`esca` raggiungibile.** Il raccoglitore riceve il pixel dal browser e mostra il token:
   senza questo il furto della sessione del funzionario non si potrebbe dimostrare.
 
+### Esposizione di rete
+
+Le porte si legano a un indirizzo scelto da `ADU_BIND_IP` (predefinito `127.0.0.1`). In aula si
+usa l'indirizzo Tailscale della macchina docente: i dispositivi degli studenti sono già sulla
+stessa tailnet, il traffico è cifrato da WireGuard e non serve né un certificato né un dominio.
+L'alternativa — un server raggiungibile da Internet — esporrebbe un'applicazione deliberatamente
+vulnerabile a chiunque, e non è un rischio che si accetta per una lezione.
+
+Due dettagli scoperti costruendo questa parte:
+
+- **Mailpit deve stare anche sulla rete `frontend`.** Docker non pubblica porte per i container
+  che vivono soltanto su una rete `internal`: la casella risulterebbe avviata ma irraggiungibile.
+  Lo SMTP resta interno, l'interfaccia web no.
+- **La SPA ricava l'indirizzo dell'API da `location.hostname`.** Scriverlo come
+  `127.0.0.1:8081` funziona solo su quella macchina; da un telefono il browser cercherebbe
+  l'API dentro sé stesso.
+
 ### Assunzioni ancora da verificare
 
 | Assunzione | Dove si verifica |

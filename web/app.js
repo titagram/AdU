@@ -9,7 +9,10 @@
  * laboratorio L16, e sarà visibile nel diff.
  */
 
-const API = 'http://127.0.0.1:8081';
+// Il portale e l'API stanno su due origini diverse, come in un'installazione reale. L'indirizzo
+// dell'API si ricava da quello con cui il browser ha aperto la pagina: così il laboratorio
+// funziona uguale in locale, da un altro dispositivo della tailnet o da un altro nome host.
+const API = `${location.protocol}//${location.hostname}:8081`;
 
 const CHIAVI = { token: 'adu.token', utente: 'adu.utente' };
 
