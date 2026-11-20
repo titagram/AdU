@@ -141,7 +141,11 @@ class DatabaseSeeder extends Seeder
         }
 
         // --- 6. Posizione fiscale e pratiche. ------------------------------------------
-        $this->seminaPosizioneFiscale($cittadini, $adesso);
+        // Mario è la prima riga della tabella e quindi l'account su cui si arriva con il bypass
+        // del login: se restasse fuori da questo giro, ogni sua area sarebbe vuota e il primo
+        // account che uno studente incontra sembrerebbe un portale rotto. Lo si accoda in fondo
+        // per non spostare gli id che i laboratori usano (la cartella di Giulia resta la 1).
+        $this->seminaPosizioneFiscale([...$cittadini, $mario], $adesso);
 
         // --- 7. La pratica "riservata" di Sara: colpo di scena del capitolo 3. --------
         $this->seminaPraticaRiservata($sara, $saraId, $adesso);
@@ -288,7 +292,10 @@ class DatabaseSeeder extends Seeder
                 ];
             }
 
-            if (mt_rand(1, 3) === 1) {
+            // Ogni cittadino ha almeno una posizione fiscale: una su tre ne ha due. Prima era
+            // un sorteggio (un terzo), e «Posizione fiscale» restava vuota per due terzi degli
+            // account.
+            for ($cartella = 0, $quante = mt_rand(1, 3) === 1 ? 2 : 1; $cartella < $quante; $cartella++) {
                 $cartelle[] = [
                     'codice_fiscale' => $cf,
                     'protocollo' => sprintf('2025/%07d', 1000 + $protocollo++),

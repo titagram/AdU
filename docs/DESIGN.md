@@ -394,7 +394,7 @@ Verificato con prove eseguite, non dichiarate:
 | Elemento | Prova |
 |---|---|
 | Avvio completo dello stack | `docker compose up -d`, sette container `running`, `db` e `mail` sani |
-| Migrazioni e seed | `adu:stato`: 204 utenti, 204 contribuenti, 580 pratiche, 72 cartelle, 371 rimborsi |
+| Migrazioni e seed | `adu:stato`: 204 utenti, 204 contribuenti, 587 pratiche, 285 cartelle, 384 rimborsi (ogni cittadino ha almeno una posizione fiscale, Mario compreso) |
 | Invariante I1 | prima riga di `utenti` = Mario Rossi, ruolo `cittadino` |
 | Invariante I5 | l'amministratore nasce con `reset_disabilitato` |
 | Determinismo del seed | due `lab:reset` danno lo stesso conteggio e lo stesso MD5 del contenuto delle cartelle |
