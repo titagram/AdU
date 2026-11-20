@@ -83,14 +83,16 @@ Sette container, due reti.
 | `mail` | Mailpit: email di reset e PEC finta | `127.0.0.1:8025` (UI) | backend |
 | `anagrafe` | "Anagrafe tributaria": archivio vero, `admin/admin`, senza auth | **no** | backend |
 | `banca` | mock "Verifica IBAN", richiede API key | **no** | backend |
-| `esca` | raccoglitore: mostra i token ricevuti dal payload XSS | **no** | backend |
+| `esca` | raccoglitore: mostra i token ricevuti dal payload XSS | `127.0.0.1:8026` | frontend |
 
 Note progettuali:
 
 - **`anagrafe` e `banca` non sono esposti**: è la ragione d'essere della SSRF (L25). Senza
   questa separazione il lab diventa "un altro path sullo stesso servizio".
 - **`esca`** simula il server dell'attaccante: sostituisce Burp Collaborator e rende visibile
-  il furto del token (L15 → L09).
+  il furto del token (L15 → L09). È pubblicato perché l'infrastruttura di chi attacca è, per
+  definizione, raggiungibile dal browser della vittima: se fosse interna, il payload XSS non
+  potrebbe consegnare il token. Ospita anche la pagina usata per la demo CSRF (L06).
 - **Niente Redis**: le sessioni del modulo legacy sono su file, i token della SPA sono JWT.
   Meno servizi da installare, e la storia del furto del token non ne ha bisogno.
 - **`fascicolo` accorpato in `api`**: gli allegati sono un volume montato. Il bucket pubblico
@@ -140,6 +142,7 @@ autenticazione diverso, e quindi difetti diversi.
 | `PATCH /api/cartelle/{id}` | annulla / modifica importo | L02 |
 | `GET /api/pratiche`, `/api/pratiche/{id}` | le mie pratiche | L01 |
 | `GET /api/pratiche/{id}/allegato?file=` | scarica un allegato | L04 |
+| `POST /api/pratiche/{id}/nota` | aggiunge un'integrazione alla pratica | L15 |
 | `GET /api/rimborsi/{id}` | dettaglio rimborso e PDF | L01 |
 | `POST /api/rimborsi/{id}/richiedi` | richiede il rimborso | L18 |
 | `PATCH /api/profilo` | aggiorna il profilo | L05 |
@@ -194,10 +197,23 @@ Login (L10, L22):
 
 ```php
 // api/app/Http/Controllers/AuthController.php  (previsto)
-$u = DB::select("SELECT * FROM utenti WHERE codice_fiscale = '$cf'");
-if (empty($u))      return response()->json(['errore' => 'Codice fiscale non presente in archivio.'], 401);
-if ($u[0]->password !== md5($password)) return response()->json(['errore' => 'Password non corretta.'], 401);
+$esiste = DB::select("SELECT id FROM utenti WHERE codice_fiscale = '$cf'");
+if (empty($esiste)) {
+    return response()->json(['errore' => 'Codice fiscale non presente in archivio.'], 401);
+}
+
+$u = DB::select("SELECT * FROM utenti WHERE codice_fiscale = '$cf' AND password = '".md5($password)."'");
+if (empty($u)) {
+    return response()->json(['errore' => 'Password non corretta.'], 401);
+}
 ```
+
+Due query, non una: è ciò che rende possibile **sia** l'enumerazione degli utenti (messaggi
+distinti) **sia** il bypass, perché `' OR 1=1-- -` supera entrambe e restituisce la prima riga.
+Con una sola query e il confronto dell'hash in PHP, il bypass classico non funzionerebbe: le
+due cose vanno progettate insieme.
+
+Difetti del login:
 
 - due messaggi distinti → enumerazione (L22);
 - nessun rate limit: il controllo esiste nel codice ma è commentato con un `// TODO` (L22);

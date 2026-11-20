@@ -43,7 +43,7 @@ Legenda colonne:
 | L12 | SQLi blind e time-based | 5 | `api` · `GET /sportello/verifica?protocollo=` (pubblico) | risposte sì/no e ritardi misurabili | due messaggi distinti: "in lavorazione" / "non trovato" |
 | L13 | Command injection | 5 | `api` · `POST /sportello/report` | esecuzione di comandi tramite il generatore di PDF | un convertitore invocato con `exec()` e argomenti concatenati |
 | L14 | XSS riflesso | 4 | `api` · `POST /api/contatti` | esegue script nel browser della vittima, senza autenticazione | il modulo rimanda a schermo il testo inviato con `{!! !!}` |
-| L15 | XSS stored | 4 | `api` · `POST /sportello/pratica/{id}/nota` | **furto del token del funzionario** quando apre la pratica | un funzionario che apre le pratiche (finestra in incognito) |
+| L15 | XSS stored | 4 | `api` · `POST /api/pratiche/{id}/nota` (scrive il cittadino) → `GET /sportello/pratica/{id}` (la legge il funzionario) | **furto del token del funzionario** quando apre la pratica | un funzionario che apre le pratiche (finestra in incognito) |
 | L16 | XSS DOM | 4 | `web` · SPA, parametro `?torna=` | esecuzione solo lato client, invisibile al server | `location.search` inserito con `innerHTML` |
 
 ## A04 — Insecure Design

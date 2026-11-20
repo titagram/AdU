@@ -44,6 +44,7 @@ Lo scopo reale è capire quanto in profondità si arriva, e dove passa la linea.
 | [`docs/COPIONE.md`](docs/COPIONE.md) | i sei capitoli e l'epilogo |
 | [`docs/CATALOGO_LAB.md`](docs/CATALOGO_LAB.md) | le 26 schede, i requisiti di seed, le invarianti |
 | [`docs/RAPPORTO_AUDIT.md`](docs/RAPPORTO_AUDIT.md) | modello di rapporto per gli studenti |
+| [`docs/docente/GUIDA_SFRUTTAMENTO.md`](docs/docente/GUIDA_SFRUTTAMENTO.md) | guida operativa per il docente — **da non consegnare alla classe** |
 | [`docs/artefatti/`](docs/artefatti/) | la mail del direttore, la scheda account, il ritaglio |
 
 ## Avvio (previsto in M1)
