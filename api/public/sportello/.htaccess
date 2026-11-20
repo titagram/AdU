@@ -1,0 +1,2 @@
+# Lo sportello telematico è l'applicazione del 2019: un solo file che smista sulle query string.
+FallbackResource /sportello/index.php

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\RimborsoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,9 +14,15 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get('/health', [AreaController::class, 'health']);
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+// DIFETTO INTENZIONALE (L22, capitolo 2): nessun limite ai tentativi. La storia del `.git`
+// racconta perché: «rate limit disattivato per il collaudo, riattivare prima della produzione».
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::post('/recupera-password', [AuthController::class, 'recupera']);
+Route::post('/reimposta-password', [AuthController::class, 'reimposta']);
 
 Route::middleware('auth.jwt')->group(function () {
+    Route::post('/rimborsi/{id}/iban', [RimborsoController::class, 'cambiaIban'])->whereNumber('id');
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/me', [AreaController::class, 'me']);

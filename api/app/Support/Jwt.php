@@ -11,8 +11,12 @@ use Illuminate\Support\Str;
 /**
  * Emissione e verifica dei token.
  *
- * Ogni token porta un `jti` registrato in `sessioni`: senza quella riga il token non vale
- * nulla, ed è così che il logout riesce davvero a revocarlo. In M2 questa verifica sparirà.
+ * DIFETTO INTENZIONALE (L09, capitolo 2): il token non scade e non è revocabile.
+ *
+ * Il payload non porta `exp`, e `verifica()` non guarda più la riga in `sessioni`. La tabella
+ * continua a riempirsi a ogni accesso — e nessuno la legge: è il tipo di codice che resta in
+ * produzione perché «tanto il logout lo fa il client, che cancella il token dal browser».
+ * Chi ha una copia del token entra finché il segreto di firma non cambia.
  */
 class Jwt
 {
@@ -34,7 +38,6 @@ class Jwt
             'jti' => $jti,
             'ruolo' => $utente->ruolo,
             'iat' => now()->timestamp,
-            'exp' => $scadenza->timestamp,
         ], config('adu.jwt_secret'), 'HS256');
 
         return [$token, $scadenza];
@@ -45,15 +48,7 @@ class Jwt
      */
     public static function verifica(string $token): array
     {
-        $claim = (array) FirebaseJwt::decode($token, new Key(config('adu.jwt_secret'), 'HS256'));
-
-        $sessione = Sessione::where('jti', $claim['jti'] ?? '')->first();
-
-        if ($sessione === null || $sessione->revocato) {
-            throw new \UnexpectedValueException('Sessione non valida o revocata.');
-        }
-
-        return $claim;
+        return (array) FirebaseJwt::decode($token, new Key(config('adu.jwt_secret'), 'HS256'));
     }
 
     public static function revoca(string $jti): void

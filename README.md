@@ -18,6 +18,10 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
+**Capitolo 2 — l'autenticazione.** Password in MD5, login concatenato, enumerazione senza
+limiti, sessione fissa, uscita che non chiude, token che non scade, recupero credenziali
+prevedibile. Lo sportello del 2019 entra in scena come secondo sistema di autenticazione.
+
 **Capitolo 1 — la ricognizione.** Lo stack a sette servizi funziona, il portale del cittadino
 si usa, e la superficie pubblica è quella che il corso fa esplorare per prima: `.git` esposto,
 backup del 2019, console di diagnostica, `robots.txt`, CORS aperto, registro degli accessi

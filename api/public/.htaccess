@@ -5,13 +5,15 @@
 
     RewriteEngine On
 
+    # DIFETTO INTENZIONALE (L22): lo sportello legacy resta fuori dal rewrite di Laravel, perché
+    # è un'applicazione PHP a sé che vive nella stessa document root. È la ragione per cui nel
+    # portale convivono due sistemi di autenticazione diversi.
+    RewriteCond %{REQUEST_URI} ^/sportello(/|$)
+    RewriteRule ^ - [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d

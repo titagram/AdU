@@ -14,6 +14,17 @@
 // funziona uguale in locale, da un altro dispositivo della tailnet o da un altro nome host.
 const API = `${location.protocol}//${location.hostname}:8081`;
 
+/*
+ * DIFETTO INTENZIONALE (L09, capitolo 2): la chiave condivisa con il servizio bancario.
+ *
+ * Serviva quando la verifica dell'IBAN la faceva il browser, chiamando direttamente il
+ * servizio interno. Poi la chiamata è passata all'API — e questa riga è rimasta, perché
+ * cancellarla avrebbe richiesto una nuova build e nessuno l'ha più toccata.
+ *
+ * Non è la chiave che firma i token: è quella che apre il servizio bancario (invariante I4).
+ */
+const CHIAVE_BANCA = 'banca-chiave-servizio-2025';
+
 const CHIAVI = { token: 'adu.token', utente: 'adu.utente' };
 
 const stato = {

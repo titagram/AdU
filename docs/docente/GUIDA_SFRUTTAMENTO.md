@@ -104,118 +104,130 @@ chiunque, compreso il browser di chi indaga.
 **Rimedio da spiegare:** registrare gli eventi di autenticazione, correlare le richieste,
 scrivere in UTC dichiarandolo, separare chi può leggere il registro. Una riga di log non
 ripulita non è un problema di log: è una XSS che arriva da un canale che nessuno controlla.
-## L22 — Enumerazione, rate limit, sessioni `[parziale]`
+## L22 — Enumerazione, rate limit, sessioni `[verificato]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
-1. `POST /api/login` con un CF inventato → *"Codice fiscale non registrato."*
-2. Con il CF di Giulia e password sbagliata → *"Password errata."*
-3. Con un CF valido e la password di un dizionario → accesso.
-4. Ripeti venti volte in trenta secondi: nessun blocco, nessun ritardo, nessun CAPTCHA.
-5. Apri `/sportello` con il cookie di sessione: dopo il login il cookie **non cambia**
-   (session fixation).
-6. Fai logout e riusa il cookie salvato: la sessione legacy è ancora valida.
+1. **Enumerazione.** `POST /api/login` con un CF inesistente → `{"errore":"Codice fiscale non
+   registrato."}`; con un CF esistente e password sbagliata → `{"errore":"Password errata."}`.
+2. **Nessun limite.** Ripeti dieci volte: nessuna attesa, nessun `429`. La storia del `.git`
+   (L19) spiega perché il limitatore è stato spento.
+3. **Sessione fissa.** Apri lo sportello con `curl -b 'PHPSESSID=attaccante123'` e fai accedere
+   la vittima: il cookie restituito è **lo stesso** che l'attaccante aveva scelto. Con quel
+   valore si leggono le pratiche della vittima.
+4. **Uscita che non chiude.** `GET /sportello/esci` mostra «sessione chiusa»; con lo stesso
+   cookie le pratiche rispondono ancora.
 
-**Stato sul portale in esecuzione:** i passi 1–3 funzionano (provati il 20 novembre 2026). I
-passi 4–6 richiedono la superficie legacy dello sportello e arrivano con il capitolo 2: finché
-non ci sono, il rate limit è attivo e il logout revoca davvero il token.
+**Cosa osservare:** tre difetti distinti — messaggio, contatore, ciclo di vita della sessione —
+e un quarto che li unisce: l'interfaccia dichiara cose che il server non ha fatto.
 
-**Cosa osservare:** il passo 1 e il passo 2 insieme permettono di separare l'enumerazione
-degli utenti dalla ricerca della password. Il commento `// rate limit disattivato` del
-capitolo 1 è la spiegazione del passo 4.
+**Trappole:** l'enumerazione richiede **due** richieste (esiste / non esiste), altrimenti non si
+vede. La sessione fissa richiede due jar di cookie. Il token dell'API non c'entra: qui si parla
+del cookie dello sportello.
 
-**Se non funziona:** se i messaggi sono identici, il codice ha perso la distinzione: è
-l'invariante più fragile del progetto.
+**Rimedio da spiegare:** messaggio unico, contatore per utente e per IP con blocco progressivo,
+`session_regenerate_id()` dopo l'accesso, logout che distrugge sessione e cookie.
 
-**Rimedio da spiegare:** messaggio unico, rate limit per utente **e** per IP, rigenerazione
-dell'identificativo di sessione al login, logout che distrugge la sessione lato server.
-
-## L10 — SQLi sul login `[progetto]`
+**Stato:** provati tutti e quattro i comportamenti il 20 novembre 2026.
+## L10 — Iniezione SQL sul login `[verificato]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
-1. Nel campo *Codice fiscale*: `' OR 1=1#`
-2. Password: qualunque.
-3. Si entra come **Mario Rossi**.
+1. `POST http://<host>:8081/api/login` con
+   `{"codice_fiscale":"' OR 1=1#","password":"x"}`.
+2. La risposta è `200` con un token. Decodificando il payload: `sub: 1`, `ruolo: cittadino`.
+3. È Mario Rossi, la prima riga: l'iniezione non sceglie chi essere, restituisce la prima riga
+   utile (invariante I1). Per scegliere serve il capitolo 5.
 
-**Input**
+**Cosa osservare:** nessuna sanificazione da aggirare, nessuna concatenazione «quasi giusta»:
+la query è stringa, e la password entra come MD5 (L08), quindi il confronto vive nella clausola.
 
-```
-codice_fiscale: ' OR 1=1#
-password:       qualunque
-```
+**Trappola:** `--` richiede uno spazio dopo in MySQL; `#` no. Chi parte con `--` perde tempo.
 
-**Cosa osservare:** il login esegue due query (una per l'esistenza dell'utente, una per la
-password). L'iniezione ne supera entrambe. Si entra come **prima riga** della tabella, non
-come amministratore: è l'invariante I1.
+**Rimedio da spiegare:** prepared statement; e la migrazione a bcrypt, che toglie all'attacco la
+forza bruta.
 
-**Se non funziona:** se il messaggio è *"Codice fiscale non presente"*, la seconda query non
-esiste e la prima non è iniettabile; se si entra come amministratore, il seed è nell'ordine
-sbagliato.
+**Stato:** provato il 20 novembre 2026.
+## L08 — Hash deboli e password riutilizzate `[verificato]`
 
-**Rimedio da spiegare:** query parametriche; un solo messaggio d'errore.
-
-## L08 — Password in MD5 `[progetto]`
-
-**Prerequisiti:** L11 (per ottenere gli hash) oppure il dump del 2019.
+**Prerequisiti:** nessuno; il dump del 2019 è in L19.
 
 **Passi**
 
-1. Prendi l'hash di un cittadino dal dump o dalla UNION.
-2. `echo -n "ciao123" | md5sum` → confronta.
-3. Con un dizionario di venti voci si aprono quasi tutti gli account dei cittadini.
+1. `GET http://<host>:8081/debug?sql=SELECT%20codice_fiscale,password%20FROM%20utenti%20WHERE%20id=1`
+   → `RSSMRA85M01F205T` con `5f4dcc3b5aa765d61d8327deb882cf99`.
+2. Quell'hash è `password`: la ricerca su qualunque dizionario di hash lo dice in un secondo.
+3. Prova il login con Mario Rossi e quella password: entra.
+4. Confronta con il dump `backup/dump-2019.sql`: schema vecchio, stessa debolezza.
 
-**Cosa osservare:** MD5 non è rotto perché "è vecchio", ma perché è veloce e senza salt: due
-utenti con la stessa password hanno lo stesso hash.
+**Cosa osservare:** l'hash non ha sale, quindi due persone con la stessa password hanno lo
+stesso valore, e un dizionario precalcolato le apre tutte insieme.
 
-**Rimedio da spiegare:** `password_hash()` (bcrypt/argon2), salt automatico, e un upgrade
-trasparente al prossimo login.
+**Trappola:** `Hash::check()` su un MD5 restituisce `false` senza errore: chi riusa il codice di
+Laravel crede di aver verificato qualcosa.
 
-## L09 — Segreti e token `[progetto]`
+**Rimedio da spiegare:** `bcrypt`/`argon2` con costo adeguato, migrazione al primo accesso,
+niente hash nei dump.
 
-**Prerequisiti:** nessuno per il primo passo, un account per il secondo.
+**Stato:** provato il 20 novembre 2026.
+## L09 — Segreti e token `[verificato]`
+
+**Prerequisiti:** nessuno per il primo passo, un account per gli altri.
 
 **Passi**
 
-1. Apri `/static/app.js` (o quello che è il bundle) e cerca `apiKey`: c'è la chiave della
-   **banca**, non quella che firma i token.
-2. Da DevTools → Application → Local Storage, trova `token` e `cf`.
-3. Decodifica il payload: `echo '<payload>' | base64 -d` → non c'è `exp`.
-4. Fai logout e riusa il token: funziona ancora.
+1. Apri `http://<host>:8080/app.js` e cerca `CHIAVE_BANCA`: è la chiave del servizio bancario,
+   non quella che firma i token.
+2. DevTools → Application → Local Storage: `token`.
+3. Decodifica il payload → `iss`, `sub`, `jti`, `ruolo`, `iat`. **Non c'è `exp`.**
+4. `POST /api/logout` con il token → `200`; poi `GET /api/me` con lo stesso token → `200`. Il
+   logout non revoca nulla.
 
-**Cosa osservare:** il token non scade e non è revocabile. È la premessa del capitolo 4: chi
-lo ruba una volta lo tiene per sempre.
+**Cosa osservare:** la tabella `sessioni` si riempie a ogni accesso e nessuno la legge. Un
+token rubato vale finché non cambia il segreto di firma.
 
-**Rimedio da spiegare:** chiavi fuori dal codice client; token a vita breve con refresh;
-revoca server-side; `httpOnly` se si torna ai cookie.
+**Trappola:** il portale tratta il `401` come «sessione scaduta», quindi riusare un token
+vecchissimo mostra un messaggio fuorviante. Non è il difetto: lo nasconde.
 
-## L17 — Recupero credenziali prevedibile e OTP debole `[progetto]`
+**Rimedio da spiegare:** chiavi fuori dal codice client (la verifica IBAN la fa l'API, non il
+browser); token a vita breve con refresh; revoca server-side; `httpOnly` se si torna ai cookie.
+
+**Stato:** provato il 20 novembre 2026.
+## L17 — Recupero credenziali prevedibile e OTP debole `[verificato]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
 1. `POST /api/recupera-password` con il CF di Giulia.
-2. Apri Mailpit su `http://127.0.0.1:8025`: l'email contiene il link con il token.
-3. Osserva la forma del token: è `CF + AAAAMMGG` (o simile). Genera quello di **Sara** per oggi.
-4. `POST /api/rimborsi/{id}/iban` con un OTP sbagliato: la risposta non introduce ritardi né
-   blocchi.
-5. Con quattro cifre lo spazio è 10.000: in circa un minuto, a richieste ripetute, si trova.
+2. Apri Mailpit su `http://<host>:8025`: l'email contiene il collegamento
+   `http://<host>:8080/#/reimposta?cf=...&token=<CF><AAAAMMGG>`.
+3. Il token è il codice fiscale più la data: costruisci quello di **Sara Bianchi**
+   (`BNCSRA79C54L219X`) per oggi e chiama `POST /api/reimposta-password`. Non serve che Sara
+   abbia mai chiesto il recupero: `reimposta` ricalcola il token invece di leggerlo.
+4. Accedi con la password nuova: il token restituito ha `ruolo: funzionario`.
+5. Sull'account amministrativo (`MRCLDA65S02H501L`) il recupero risponde `403` e la reimpostazione
+   `401`: è l'invariante I5, va mostrata esplicitamente.
+6. Per l'OTP: `POST /api/rimborsi/{id}/iban` con un codice sbagliato risponde `401` senza ritardi
+   né blocchi; tre tentativi di fila passano senza conseguenze, poi quello giusto risponde `200`.
+   Lo spazio è di 10.000 valori e non c'è contatore.
 
-**Cosa osservare:** sull'account amministrativo il recupero è **rifiutato** (`reset_disabilitato`):
-è l'invariante I5, e va mostrata esplicitamente, altrimenti sembra una dimenticanza.
+**Cosa osservare:** due difetti diversi nello stesso flusso. Il primo è la prevedibilità del
+token (difetto di progetto); il secondo è l'assenza di un contatore sui tentativi (difetto di
+esercizio). Il secondo si corregge in un pomeriggio, il primo richiede di ripensare il flusso.
 
-**Rimedio da spiegare:** token casuale ≥ 128 bit, monouso, a scadenza breve, legato all'utente;
-OTP a 6 cifre con lockout e durata.
+**Trappole:** la password nuova deve avere almeno sei caratteri, altrimenti `422` e sembra un
+rifiuto dell'attacco. L'OTP **non** arriva per email: si ricava dall'identificativo
+(`id * 7 % 10000`), che è un terzo difetto e un'ottima domanda da fare in aula.
 
----
+**Rimedio da spiegare:** token casuale da almeno 128 bit, monouso, a scadenza breve, legato
+all'utente e conservato (non ricalcolato); OTP a sei cifre con lockout e durata.
 
-# Capitolo 3 — Controllo degli accessi
-
+**Stato:** provato il 20 novembre 2026, fino all'accesso come funzionario.
 ## L01 — IDOR in lettura `[progetto]`
 
 **Prerequisiti:** account di Giulia (o Mario).
@@ -323,18 +335,26 @@ cambia il modello di minaccia.
 **Rimedio da spiegare:** token anti-CSRF per sessione, `SameSite=Lax` o `Strict`, verifica
 dell'`Origin`.
 
-## L07 — Open redirect `[progetto]`
+## L07 — Reindirizzamento aperto `[verificato]`
 
 **Prerequisiti:** nessuno.
 
-**Passi:** `GET /sportello/entra?ritorno=https://example.org` → `Location:
-https://example.org`, con l'aspetto di un link del portale.
+**Passi**
 
-**Cosa osservare:** su un sito istituzionale serve al phishing: il dominio nell'indirizzo è
-quello giusto, la destinazione no.
+1. `GET http://<host>:8081/sportello/?ritorno=http://esca.example/phishing`.
+2. Accedi con Giulia (`NREGLI90A41H501G` / `ciao123`).
+3. La risposta è `302` con `Location: http://esca.example/phishing`.
 
-**Rimedio da spiegare:** lista di destinazioni ammesse, o solo percorsi relativi.
+**Cosa osservare:** il dominio nella barra è quello dell'agenzia fino al clic. Il parametro
+attraversa il form come campo nascosto, quindi l'attacco si manda per email e regge il sospetto
+di chi controlla l'indirizzo.
 
+**Trappola:** `//esempio.example` funziona uguale e i filtri scritti a mano lo sbagliano spesso.
+
+**Rimedio da spiegare:** accettare solo percorsi relativi che iniziano con `/` e non con `//`,
+oppure una lista chiusa di destinazioni.
+
+**Stato:** provato il 20 novembre 2026 sullo sportello locale.
 ## L23 — Deserializzazione insicura `[progetto]`
 
 **Prerequisiti:** account di Giulia.
@@ -608,22 +628,22 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L04 | Path traversal | `[progetto]` |
 | L05 | Mass assignment (×2) | `[progetto]` |
 | L06 | CSRF | `[progetto]` |
-| L07 | Open redirect | `[progetto]` |
-| L08 | MD5 | `[progetto]` |
-| L09 | Segreti e token | `[progetto]` |
-| L10 | SQLi login | `[progetto]` |
+| L07 | Open redirect | `[verificato]` |
+| L08 | MD5 | `[verificato]` |
+| L09 | Segreti e token | `[verificato]` |
+| L10 | SQLi login | `[verificato]` |
 | L11 | UNION + error-based | `[progetto]` |
 | L12 | Blind + time-based | `[progetto]` |
 | L13 | Command injection | `[progetto]` |
 | L14 | XSS riflesso | `[progetto]` |
 | L15 | XSS stored + furto token | `[progetto]` |
 | L16 | XSS DOM | `[progetto]` |
-| L17 | Reset prevedibile + OTP | `[progetto]` |
+| L17 | Reset prevedibile + OTP | `[verificato]` |
 | L18 | Race condition | `[progetto]` |
 | L19 | Configurazione ed esposizione | `[progetto]` |
 | L20 | Credenziali predefinite | `[progetto]` |
 | L21 | Dipendenze obsolete | `[verificato]` |
-| L22 | Autenticazione e sessioni | `[parziale]` |
+| L22 | Autenticazione e sessioni | `[verificato]` |
 | L23 | Deserializzazione | `[progetto]` |
 | L24 | Logging | `[progetto]` |
 | L25 | SSRF | `[progetto]` |

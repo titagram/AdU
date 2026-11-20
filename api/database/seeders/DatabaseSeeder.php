@@ -213,8 +213,10 @@ class DatabaseSeeder extends Seeder
             'nome' => $c['nome'],
             'cognome' => $c['cognome'],
             'email' => $email,
-            // Costo basso solo per velocizzare il seed: è comunque un hash corretto.
-            'password' => Hash::make($password, ['rounds' => 6]),
+            // DIFETTO INTENZIONALE (L08, capitolo 2): MD5 senza sale, per compatibilità con lo
+            // sportello del 2019 che verifica la password dentro la query. Il nuovo portale
+            // avrebbe dovuto migrare gli hash al primo accesso, e non l'ha mai fatto.
+            'password' => md5($password),
             'ruolo' => $ruolo,
             'attivo' => true,
             'reset_disabilitato' => $resetDisabilitato,
@@ -340,6 +342,9 @@ class DatabaseSeeder extends Seeder
         foreach (array_chunk($rimborsi, 200) as $chunk) {
             DB::table('rimborsi')->insert($chunk);
         }
+
+        // DIFETTO INTENZIONALE (L17): quattro cifre, ricavabili dall'identificativo del rimborso.
+        DB::table('rimborsi')->update(['otp' => DB::raw("LPAD((id * 7) % 10000, 4, '0')")]);
         foreach (array_chunk($iban, 200) as $chunk) {
             DB::table('iban')->insert($chunk);
         }

@@ -45,7 +45,7 @@ class InvariantiTest extends TestCase
         foreach ($personale as $utente) {
             foreach ($deboli as $password) {
                 $this->assertFalse(
-                    \Illuminate\Support\Facades\Hash::check($password, $utente->password),
+                    md5($password) === $utente->password,
                     "I3: {$utente->email} usa una password del dizionario"
                 );
             }

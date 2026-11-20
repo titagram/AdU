@@ -14,5 +14,7 @@ return [
 
     // DIFETTO INTENZIONALE (L19): `*`. Serviva a far lavorare il frontend di un'altra ditta su
     // indirizzi che cambiavano ogni giorno; è rimasto perché nessuno ha aperto un ticket.
+    'portale_url' => env('ADU_PORTALE_URL', 'http://127.0.0.1:8080'),
+
     'cors_origins' => explode(',', env('ADU_CORS_ORIGINS', '*')),
 ];

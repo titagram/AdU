@@ -365,6 +365,13 @@ sicurezza quel diff vale più di cento slide.
 | Console di diagnostica e CORS `*` (L19) | `api` · `/debug`, `config/adu.php` | le ultime query con i codici fiscali degli altri; qualunque origine legge l'API |
 | Pagina delle dipendenze (L21) | `api` · `/admin/dipendenze` | librerie obsolete dichiarate, in contrasto con `composer.lock` |
 | Registro degli accessi incompleto (L24) | `api` · `log_accessi`, `/admin/log` | i tentativi falliti non esistono, l'ora è UTC senza dirlo, lo `User-Agent` torna al browser senza escape |
+| Password in MD5 (L08) | `api` · seeder, `utenti.password` | nessun sale, nessun costo: il dizionario precalcolato apre le porte |
+| Login concatenato (L10) | `api` · `AuthController::login` | `' OR 1=1#` restituisce la prima riga: si entra come Mario Rossi |
+| Enumerazione e nessun limite (L22) | `api` · `POST /api/login` | due messaggi distinti e nessun contatore: si scopre chi esiste e si prova all'infinito |
+| Sessione fissa e uscita che non chiude (L22) | `api` · `/sportello/` | `session_start()` senza rigenerazione; `/esci` non tocca la sessione |
+| Token senza scadenza e senza revoca (L09) | `api` · `Support/Jwt.php` | niente `exp`; `verifica()` non legge `sessioni`; il logout non revoca |
+| Chiave del servizio bancario nel bundle (L09) | `web/app.js` | il segreto esposto dell'invariante I4 |
+| Recupero prevedibile e OTP a quattro cifre (L17) | `api` · `AuthController::recupera`, `RimborsoController` | token = CF + data, ricalcolato invece che letto; nessun limite ai tentativi |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -415,6 +422,25 @@ trovano è raggiungibile senza credenziali, e nessuno di questi elementi è simu
 Lo strumento per ricostruire il `.git` sta in `docs/docente/strumenti/dump-git.py`: serve al
 docente perché `git clone` non funziona (manca `git-http-backend`) ed è la prima cosa che
 confonde chi prova.
+
+### Capitolo 2 — autenticazione (fatto)
+
+Due sistemi di autenticazione convivono nello stesso portale, ed è una scelta di progetto: il
+portale nuovo (JWT) e lo sportello del 2019 (sessione PHP), rimasto in esercizio per gli uffici
+territoriali. Metà dei laboratori vive nello sportello, e chi cerca le vulnerabilità solo nella
+SPA non le trova.
+
+| Pezzo | Come è fatto | Dove |
+|---|---|---|
+| sportello legacy | un front controller PHP con cinque rotte, sessioni native, query concatenate | `api/public/sportello/index.php` |
+| esclusione dal rewrite | `/sportello` resta fuori dal front controller di Laravel | `api/public/.htaccess` |
+| password | MD5 senza sale, scritto dal seeder | `api/database/seeders/DatabaseSeeder.php` |
+| login dell'API | una query concatenata che decide l'identità | `api/app/Http/Controllers/Api/AuthController.php` |
+| recupero | token `CF + AAAAMMGG`, ricalcolato in fase di verifica | stessa classe |
+| OTP dell'IBAN | quattro cifre in `rimborsi.otp`, nessun contatore | `api/app/Http/Controllers/Api/RimborsoController.php` |
+
+Lo sportello è deliberatamente **brutto**: tabelle, Verdana, un piè di pagina del 2019. Serve a
+rendere visibile che si tratta di un altro sistema, con altre regole.
 
 ### Esposizione di rete
 
