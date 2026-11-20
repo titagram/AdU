@@ -31,4 +31,14 @@ Route::middleware('auth.jwt')->group(function () {
     Route::get('/pratiche', [AreaController::class, 'pratiche']);
     Route::get('/pratiche/{id}', [AreaController::class, 'pratica'])->whereNumber('id');
     Route::get('/rimborsi', [AreaController::class, 'rimborsi']);
+    Route::get('/rimborsi/{id}', [AreaController::class, 'rimborso'])->whereNumber('id');
+
+    // Capitolo 3 — accessi e scritture.
+    Route::patch('/cartelle/{id}', [AreaController::class, 'aggiornaCartella'])->whereNumber('id');
+    Route::patch('/profilo', [AreaController::class, 'aggiornaProfilo']);
+    Route::post('/profilo/preferenze', [AreaController::class, 'salvaPreferenze']);
+    Route::post('/pratiche/importa', [AreaController::class, 'importaPratiche']);
+    Route::get('/admin/export', [AreaController::class, 'esportaContribuenti']);
+    Route::get('/pratiche/{id}/allegato', [AreaController::class, 'scaricaAllegato'])->whereNumber('id');
+    Route::post('/pratiche/{id}/allegato', [AreaController::class, 'caricaAllegato'])->whereNumber('id');
 });

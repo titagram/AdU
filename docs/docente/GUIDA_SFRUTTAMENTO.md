@@ -228,95 +228,107 @@ rifiuto dell'attacco. L'OTP **non** arriva per email: si ricava dall'identificat
 all'utente e conservato (non ricalcolato); OTP a sei cifre con lockout e durata.
 
 **Stato:** provato il 20 novembre 2026, fino all'accesso come funzionario.
-## L01 — IDOR in lettura `[progetto]`
+## L01 — IDOR in lettura `[verificato]`
 
-**Prerequisiti:** account di Giulia (o Mario).
-
-**Passi**
-
-1. `GET /api/cartelle/{id}` con il proprio id → la cartella da € 1.247,00.
-2. Cambia l'id (`-1`, `+1`, …) → cartelle di altri contribuenti.
-3. `GET /api/pratiche/{id}` e `GET /api/rimborsi/{id}` → pratiche e rimborsi altrui, PDF incluso.
-
-**Cosa osservare:** la risposta non è "404 per caso": il controllo di appartenenza non esiste
-proprio. Con 200 contribuenti si arriva all'intero archivio un id alla volta.
-
-**Se non funziona:** se torna 403, qualcuno ha aggiunto una policy — verifica che l'invariante
-non sia stata "corretta" per errore.
-
-**Rimedio da spiegare:** autorizzazione sulla **risorsa**, non sull'utente; id non indovinabili
-aiutano ma non sostituiscono il controllo.
-
-## L02 — IDOR in scrittura `[progetto]`
-
-**Prerequisiti:** account di Giulia.
+**Prerequisiti:** un token qualsiasi; quello di Mario Rossi si ottiene con L08 (`password`) o con
+L10 (`' OR 1=1#`).
 
 **Passi**
 
-1. `PATCH /api/cartelle/{id}` con `{"importo": 0, "stato": "annullata"}` sul **proprio** id →
-   l'obiettivo dichiarato del corso è raggiunto.
-2. Ripeti sull'id di Mario: funziona uguale.
+1. `GET /api/cartelle/1` con il token di Mario → la cartella `2025/000481` di Giulia Neri.
+2. `GET /api/pratiche/1` → la pratica `2025/004102`.
+3. `GET /api/rimborsi/1` → il rimborso con IBAN.
+4. Confronto: `GET /api/cartelle` (senza id) filtra ancora per utente. Il difetto è solo sulle
+   rotte puntuali.
 
-**Cosa osservare:** leggere è un incidente, scrivere è un reato. Il codice accetta anche
-`codice_fiscale`? No: **non deve** (vedi L05), altrimenti questo endpoint diventa un secondo
-modo di impersonare e il capitolo 4 perde il suo premio.
+**Cosa osservare:** nessun indizio, nessuna credenziale di Giulia: solo un intero incrementale.
+Gli id si scorrono a mano cambiando una cifra.
 
-**Rimedio da spiegare:** stessa regola del L01, più la regola "il corpo della richiesta non
-decide chi sono io".
+**Trappola:** partendo da un id alto non si trova nulla e sembra che il filtro ci sia.
 
-## L03 — Forced browsing `[progetto]`
+**Rimedio da spiegare:** l'autorizzazione si fa sull'oggetto (`cartella->codice_fiscale ===
+utente->codice_fiscale`), non sulla rotta.
 
-**Prerequisiti:** account qualsiasi.
+**Stato:** provato il 20 novembre 2026.
+## L02 — IDOR in scrittura `[verificato]`
 
-**Passi**
-
-1. `GET /api/admin/export` con il token di Giulia → CSV con tutti i contribuenti.
-2. Confronta con `GET /api/admin/utenti`, che invece risponde 403: il middleware c'è, ma non
-   su tutti gli endpoint.
-
-**Cosa osservare:** è il difetto che spiega l'articolo del giornalista: un endpoint protetto e
-uno no, nella stessa cartella di codice.
-
-**Rimedio da spiegare:** autorizzazione dichiarativa sul gruppo di rotte, non endpoint per
-endpoint.
-
-## L04 — Path traversal `[progetto]`
-
-**Prerequisiti:** account qualsiasi.
+**Prerequisiti:** come L01.
 
 **Passi**
 
-1. `GET /api/pratiche/{id}/allegato?file=documento.pdf` → il PDF.
-2. `?file=../../.env` → variabili d'ambiente, comprese le credenziali del database.
-3. Calcola i `../` corretti: la cartella base è `storage/app/allegati`; per arrivare a `.env`
-   in radice servono tre livelli.
+1. `PATCH /api/cartelle/1` con `{"importo":"1.00"}` → la cartella di Giulia vale 1 euro.
+2. `PATCH /api/cartelle/1` con `{"codice_fiscale":"RSSMRA85M01F205T"}` → la cartella cambia
+   proprietario e Giulia non la vede più.
 
-**Cosa osservare:** la risposta restituisce il file anche se il nome non ha estensione
-ammessa.
+**Cosa osservare:** la scrittura non dà errore e restituisce l'oggetto aggiornato: chi non
+guarda il codice fiscale nella risposta crede di aver toccato la propria cartella.
 
-**Rimedio da spiegare:** risolvi il percorso e verifica che resti dentro la cartella base
-(`realpath` + prefisso); meglio ancora, servi gli allegati per id, non per nome.
+**Trappola:** `PATCH` con pochi campi sembra innocuo; il `$fillable` di `Cartella` comprende
+`codice_fiscale`, quindi il secondo passo funziona.
 
-## L05 — Mass assignment `[progetto]`
+**Rimedio da spiegare:** come L01 più una lista esplicita dei campi modificabili dal client.
 
-**Prerequisiti:** account di Giulia (prima parte); account funzionario (seconda parte).
+**Stato:** provato il 20 novembre 2026.
+## L03 — Forced browsing `[verificato]`
 
-**Passi — prima parte: impersonare un cittadino**
+**Prerequisiti:** un token qualsiasi.
 
-1. `PATCH /api/profilo` con `{"codice_fiscale": "RSSMRA85M01H501Z"}`.
-2. `GET /api/me` → ora sei Mario, e vedi le sue pratiche senza cambiare id.
+**Passi:** `GET /api/admin/export` → CSV con 204 contribuenti (codice fiscale, nome, cognome,
+email, ruolo).
 
-**Passi — seconda parte: promuoversi (capitolo 6)**
+**Cosa osservare:** il nome della rotta suggerisce un controllo che non c'è. Il middleware
+verifica che tu sia qualcuno, non che tu abbia un ruolo.
 
-1. Con il token di Sara: `PATCH /sportello/utenti/{id_di_sara}` con `{"ruolo": "amministratore"}`.
-2. Ricarica: il menu amministrativo compare.
+**Trappola:** senza token la risposta è `401`, e il laboratorio sembra protetto: è la differenza
+fra autenticazione e autorizzazione.
 
-**Cosa osservare:** lo stesso `$fillable` serve due controller; quello del cittadino filtra i
-campi, quello dello sportello no. È l'escalation finale, e richiede di essere già funzionario.
+**Rimedio da spiegare:** un controllo di ruolo esplicito sulla rotta, e un export che non
+contiene più di quanto serva.
 
-**Rimedio da spiegare:** `$fillable` minimale, e DTO espliciti per i campi che l'utente può
-davvero cambiare.
+**Stato:** provato il 20 novembre 2026.
+## L04 — Path traversal `[verificato]`
 
+**Prerequisiti:** un token; una pratica con un allegato (il seed crea `ricevuta.pdf` sulla
+pratica 1).
+
+**Passi**
+
+1. `GET /api/pratiche/1/allegato?file=ricevuta.pdf` → funziona, è l'allegato vero.
+2. `GET /api/pratiche/1/allegato?file=../../../../.env` → `APP_KEY`, credenziali del database e
+   segreto di firma dei token.
+3. Da qui si firma un token da amministratore: è il ponte verso il capitolo 6.
+
+**Cosa osservare:** `is_file()` è l'unico controllo, e verifica che il percorso esista, non che
+sia lecito.
+
+**Trappole:** il percorso parte da `storage/app/allegati/{id}/`; con `curl` serve `--path-as-is`,
+perché curl normalizza i `..` prima di inviare. Il browser non li normalizza nella query string.
+
+**Rimedio da spiegare:** nome logico e percorso separati, allegati fuori dalla document root,
+`basename()` e una lista di file ammessi per pratica.
+
+**Stato:** provato il 20 novembre 2026.
+## L05 — Assegnazione di massa `[verificato]`
+
+**Prerequisiti:** un token qualsiasi per il primo vettore; un funzionario per il secondo
+(L17 o L22).
+
+**Passi**
+
+1. `PATCH /api/profilo` con `{"codice_fiscale":"NREGLI90A41H501G"}` → il proprio account mostra
+   i dati di Giulia.
+2. Verifica: `GET /api/cartelle` restituisce le cartelle di Giulia.
+3. Secondo vettore (capitolo 6): `PATCH /sportello/utenti/{id}` con `{"ruolo":"amministratore"}`.
+
+**Cosa osservare:** non serve indovinare id o token: si cambia la propria identità. Il `$fillable`
+di `Utente` comprende `codice_fiscale`, `ruolo`, `attivo` e `reset_disabilitato`.
+
+**Trappola:** `attivo:false` su sé stessi funziona, e il portale diventa inaccessibile: `lab:reset`.
+
+**Rimedio da spiegare:** `$fillable` come decisione di sicurezza; campi modificabili elencati per
+rotta, non per modello.
+
+**Stato:** provato il 20 novembre 2026.
 ## L06 — CSRF sul cambio IBAN `[progetto]`
 
 **Prerequisiti:** account funzionario, con la sessione cookie del modulo legacy attiva.
@@ -355,46 +367,52 @@ di chi controlla l'indirizzo.
 oppure una lista chiusa di destinazioni.
 
 **Stato:** provato il 20 novembre 2026 sullo sportello locale.
-## L23 — Deserializzazione insicura `[progetto]`
+## L23 — Deserializzazione insicura `[verificato]`
 
-**Prerequisiti:** account di Giulia.
-
-**Passi**
-
-1. `POST /api/profilo/preferenze` con `{"preferenze": "<base64>"}`.
-2. Manda un oggetto qualsiasi: l'errore rivela che il contenuto è passato a `unserialize()`.
-3. Con la classe che il codice istanzia (quella che genera il report), costruisci l'oggetto che
-   nel distruttore scrive un file in una cartella scelta.
-
-**Cosa osservare:** non è "input non validato": è un **formato** che permette di costruire
-oggetti. Il pericolo sta nei metodi magici, non nei dati.
-
-**Rimedio da spiegare:** `json_decode` invece di `unserialize`; se serve serializzare, firma il
-payload e usa una whitelist di classi.
-
-## L26 — Upload non sicuro `[progetto]`
-
-**Prerequisiti:** account qualsiasi.
+**Prerequisiti:** un token.
 
 **Passi**
 
-1. Carica `prova.png` (accettato).
-2. Carica `prova.html` rinominandolo con `Content-Type: image/png`: viene accettato.
-3. `GET /storage/allegati/prova.html` → il browser lo interpreta come pagina, non come immagine.
+1. `POST /api/profilo/preferenze` con `preferenze` = base64 di
+   `a:1:{s:4:"tema";s:5:"scuro";}` → `{"preferenze":{"tema":"scuro"}}`.
+2. Ripeti con un oggetto: base64 di `O:8:"stdClass":1:{s:1:"a";s:1:"b";}` → il server istanzia
+   l'oggetto che gli hai dato.
+3. `POST /api/pratiche/importa` con `{"condizione":"true"}` → importa tutte le pratiche;
+   la condizione è PHP valutato con `eval`.
 
-**Cosa osservare:** il controllo guarda quello che il client **dichiara**, non quello che il
-file contiene.
+**Cosa osservare:** due difetti dello stesso tipo — input che diventa codice: uno costruisce
+oggetti, l'altro li valuta.
 
-**Rimedio da spiegare:** whitelist di estensioni e MIME reali, rinomina, `Content-Disposition:
-attachment`, servizio da un dominio separato.
+**Trappole:** la stringa serializzata ha lunghezze esplicite; un byte sbagliato e
+`unserialize` restituisce `false` con un errore che sembra di rete. `eval` restituisce il valore
+del `return`: senza `return` non filtra nulla e non dà errore.
 
----
+**Rimedio da spiegare:** JSON con schema, mai `unserialize` su input esterno; nessun `eval`, e un
+filtro espresso con parametri.
 
-# Capitolo 4 — XSS e furto del token
+**Stato:** provati i tre passi il 20 novembre 2026. L'esecuzione arbitraria via `eval` non è
+mostrata nella guida: la decide il docente.
+## L26 — Caricamento non sicuro `[verificato]`
 
-> Il capitolo si gioca in due finestre: una normale (attaccante) e una **in incognito** (Sara).
-> Chiudi quella in incognito solo alla fine.
+**Prerequisiti:** un token; una pratica propria (il seed ne dà una a Giulia).
 
+**Passi**
+
+1. Crea un file `allegato.html` con `<script>alert(document.domain)</script>`.
+2. `POST /api/pratiche/{id}/allegato` in multipart, dichiarando `type=text/plain`.
+3. La risposta restituisce il nome e l'URL di scaricamento.
+4. `GET` di quell'URL → `Content-Type: text/html`, e il browser esegue lo script.
+
+**Cosa osservare:** il controllo esiste ed è quello sbagliato: confronta il tipo **dichiarato**
+dal client. Il file viene conservato con il nome originale e servito dal dominio dell'API.
+
+**Trappola:** il file resta anche dopo `lab:reset`, perché `storage/app/allegati` non viene
+ripulito: va cancellato a mano.
+
+**Rimedio da spiegare:** nome generato dal server, tipo verificato leggendo il contenuto,
+`Content-Disposition: attachment`, dominio separato per i contenuti caricati.
+
+**Stato:** provato il 20 novembre 2026.
 ## L14 — XSS riflesso `[progetto]`
 
 **Prerequisiti:** nessuno (il modulo contatti è pubblico).
@@ -622,11 +640,11 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 
 | Lab | Tecnica | Stato |
 |---|---|---|
-| L01 | IDOR lettura | `[progetto]` |
-| L02 | IDOR scrittura | `[progetto]` |
-| L03 | Forced browsing | `[progetto]` |
-| L04 | Path traversal | `[progetto]` |
-| L05 | Mass assignment (×2) | `[progetto]` |
+| L01 | IDOR lettura | `[verificato]` |
+| L02 | IDOR scrittura | `[verificato]` |
+| L03 | Forced browsing | `[verificato]` |
+| L04 | Path traversal | `[verificato]` |
+| L05 | Mass assignment (×2) | `[verificato]` |
 | L06 | CSRF | `[progetto]` |
 | L07 | Open redirect | `[verificato]` |
 | L08 | MD5 | `[verificato]` |
@@ -644,10 +662,10 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L20 | Credenziali predefinite | `[progetto]` |
 | L21 | Dipendenze obsolete | `[verificato]` |
 | L22 | Autenticazione e sessioni | `[verificato]` |
-| L23 | Deserializzazione | `[progetto]` |
+| L23 | Deserializzazione | `[verificato]` |
 | L24 | Logging | `[progetto]` |
 | L25 | SSRF | `[progetto]` |
-| L26 | Upload | `[progetto]` |
+| L26 | Upload | `[verificato]` |
 
 Il marcatore diventa `[verificato]` quando la scheda è stata provata sul portale in esecuzione,
 insieme al codice del lab (M2–M6).

@@ -30,4 +30,7 @@ php artisan migrate --force
 # Il seed gira una volta sola: se ci sono già utenti, il database è popolato.
 php artisan adu:installa
 
+# Il seed gira come root e crea le cartelle di `storage`; Apache scrive come www-data.
+chown -R www-data:www-data storage bootstrap/cache
+
 exec apache2-foreground

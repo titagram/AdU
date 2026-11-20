@@ -372,6 +372,12 @@ sicurezza quel diff vale più di cento slide.
 | Token senza scadenza e senza revoca (L09) | `api` · `Support/Jwt.php` | niente `exp`; `verifica()` non legge `sessioni`; il logout non revoca |
 | Chiave del servizio bancario nel bundle (L09) | `web/app.js` | il segreto esposto dell'invariante I4 |
 | Recupero prevedibile e OTP a quattro cifre (L17) | `api` · `AuthController::recupera`, `RimborsoController` | token = CF + data, ricalcolato invece che letto; nessun limite ai tentativi |
+| IDOR in lettura e in scrittura (L01, L02) | `api` · `GET`/`PATCH /api/cartelle/{id}`, `/api/pratiche/{id}`, `/api/rimborsi/{id}` | il fascicolo di un altro contribuente, e la possibilità di modificarlo |
+| Forced browsing (L03) | `api` · `GET /api/admin/export` | CSV con tutti i contribuenti, senza controllo di ruolo |
+| Path traversal (L04) | `api` · `GET /api/pratiche/{id}/allegato?file=` | il `.env` dell'API: chiave applicativa e segreto di firma dei token |
+| Assegnazione di massa (L05) | `api` · `PATCH /api/profilo` | cambio del proprio codice fiscale, quindi dei dati che il portale mostra |
+| Deserializzazione ed `eval` (L23) | `api` · `/api/profilo/preferenze`, `/api/pratiche/importa` | oggetti costruiti dal client e condizioni PHP eseguite |
+| Caricamento non sicuro (L26) | `api` · `POST /api/pratiche/{id}/allegato` | un `.html` accettato come `text/plain` e servito come pagina |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -441,6 +447,24 @@ SPA non le trova.
 
 Lo sportello è deliberatamente **brutto**: tabelle, Verdana, un piè di pagina del 2019. Serve a
 rendere visibile che si tratta di un altro sistema, con altre regole.
+
+### Capitolo 3 — accessi e scritture (fatto)
+
+Il capitolo in cui il portale smette di chiedere «chi sei» e comincia a non chiedere «di chi è
+questo». Tutte le rotte stanno in `app/Http/Controllers/Api/AreaController.php`, perché il punto
+didattico è che il difetto non è nel posto sbagliato: sono i controlli a mancare, uno per uno.
+
+| Pezzo | Cosa manca | Dove |
+|---|---|---|
+| IDOR | il filtro sul proprietario | `AreaController::cartella`, `pratica`, `rimborso` |
+| scrittura | il controllo più i campi ammessi | `AreaController::aggiornaCartella` |
+| export | il ruolo | `AreaController::esportaContribuenti` |
+| allegati | la normalizzazione del percorso e il tipo vero del file | `AreaController::scaricaAllegato`, `caricaAllegato` |
+| preferenze | `unserialize` su input esterno | `AreaController::salvaPreferenze` |
+| import | `eval` sulla condizione di filtro | `AreaController::importaPratiche` |
+
+Il seed prepara anche il bersaglio di L04: un allegato vero (`ricevuta.pdf`) sulla pratica di
+Giulia, così lo scaricamento legittimo funziona e la traversal si distingue da un endpoint rotto.
 
 ### Esposizione di rete
 

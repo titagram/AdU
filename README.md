@@ -18,6 +18,10 @@ didattico per un corso di sicurezza applicativa su OWASP Top 10.
 
 ## Stato del progetto
 
+**Capitolo 3 — accessi e scritture.** IDOR in lettura e in scrittura, elenco dei contribuenti
+senza controllo di ruolo, path traversal sul `.env`, assegnazione di massa, `unserialize` ed
+`eval`, caricamento di file serviti come pagine.
+
 **Capitolo 2 — l'autenticazione.** Password in MD5, login concatenato, enumerazione senza
 limiti, sessione fissa, uscita che non chiude, token che non scade, recupero credenziali
 prevedibile. Lo sportello del 2019 entra in scena come secondo sistema di autenticazione.

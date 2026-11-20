@@ -352,6 +352,23 @@ class DatabaseSeeder extends Seeder
             DB::table('pratiche')->insert($chunk);
         }
 
+        // Allegato dimostrativo per il laboratorio L04: un file con una stringa nota, accanto
+        // al quale la path traversal del capitolo 3 deve poter leggere altro.
+        $praticaGiulia = DB::table('pratiche')->where('codice_fiscale', 'NREGLI90A41H501G')->value('id');
+        $cartellaAllegati = storage_path('app/allegati/'.$praticaGiulia);
+        if (! is_dir($cartellaAllegati)) {
+            mkdir($cartellaAllegati, 0777, true);
+        }
+        // Il seed gira come root, Apache scrive come www-data: senza questo, il caricamento
+        // degli allegati del capitolo 3 non riesce. Permessi larghi, come capita nei laboratori.
+        @chmod(dirname($cartellaAllegati), 0777);
+        @chmod($cartellaAllegati, 0777);
+        file_put_contents(
+            $cartellaAllegati.'/ricevuta.pdf',
+            "Allegato dimostrativo della pratica {$praticaGiulia}.\n"
+            ."Contenuto fittizio: serve a provare che lo scaricamento funziona.\n",
+        );
+
         // Assegna un funzionario a ogni pratica e qualche nota.
         $funzionari = DB::table('utenti')->where('ruolo', 'funzionario')->pluck('id')->all();
         $note = [];
