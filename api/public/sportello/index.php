@@ -96,6 +96,47 @@ function redirect(string $destinazione): void
 $percorso = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
 $percorso = '/'.trim(substr($percorso, strlen('/sportello')), '/');
 
+// DIFETTO INTENZIONALE (L15, capitolo 4): il funzionario apre la nota del cittadino.
+if (preg_match('#^/pratica/(\d+)$#', $percorso, $pezzi) === 1) {
+    if (! isset($_SESSION['cf'])) {
+        redirect('/sportello/');
+    }
+
+    if (! in_array($_SESSION['ruolo'] ?? '', ['funzionario', 'amministratore'], true)) {
+        vista('Riservata al personale', '<p>Questa pagina è riservata agli uffici.</p>');
+        exit;
+    }
+
+    $pratica = db()->query("SELECT * FROM pratiche WHERE id = ".(int) $pezzi[1])->fetch();
+
+    if ($pratica === false) {
+        vista('Pratica inesistente', '<p>Nessuna pratica con questo numero.</p>');
+        exit;
+    }
+
+    $note = db()->query(
+        "SELECT n.corpo, n.creata_il, u.email FROM note_pratiche n
+         LEFT JOIN utenti u ON u.id = n.autore_id
+         WHERE n.pratica_id = ".(int) $pezzi[1]." ORDER BY n.creata_il"
+    )->fetchAll();
+
+    $elenco = '';
+    foreach ($note as $n) {
+        // Nessun escape: la nota è del cittadino e il funzionario si fida del portale.
+        $elenco .= '<div style="background:#fff;border:1px solid #d3dbe4;padding:.8rem;margin:.6rem 0">'
+            .$n['corpo'].'<div style="color:#666;font-size:.78rem">'
+            .e((string) $n['email']).' · '.e(substr((string) $n['creata_il'], 0, 16)).'</div></div>';
+    }
+
+    vista('Pratica '.$pratica['protocollo'], '
+        <p><strong>Servizio:</strong> '.e($pratica['servizio']).' · <strong>Stato:</strong> '
+        .e($pratica['stato']).'</p>
+        <h2 style="font-size:1rem">Note del cittadino</h2>
+        '.($elenco !== '' ? $elenco : '<p>Nessuna nota.</p>').'
+    ');
+    exit;
+}
+
 switch ($percorso) {
     case '/':
         if (isset($_SESSION['cf'])) {

@@ -177,6 +177,9 @@ function disegnaNavigazione() {
         contenitore.replaceChildren(
             el('a', { href: '#/area', classe: 'navigazione-utente', testo: `${stato.utente.nome} ${stato.utente.cognome}` }),
             ' · ',
+            ...(['funzionario', 'amministratore'].includes(stato.utente.ruolo)
+                ? [el('a', { href: '#/sportello', testo: 'sportello' }), ' · ']
+                : []),
             el('button', { classe: 'azione-uscita', testo: 'esci', onclick: esci }),
         );
         return;
@@ -288,6 +291,15 @@ function vistaAccedi() {
             riquadro.replaceChildren(errore(e.message));
         }
     });
+
+    // DIFETTO INTENZIONALE (L16, capitolo 4): il messaggio di ritorno viaggia nell'indirizzo e
+    // viene scritto nella pagina come HTML. `?torna=<img src=x onerror=...>` esegue.
+    const torna = new URLSearchParams(location.search).get('torna');
+    if (torna) {
+        const striscia = el('div', { classe: 'striscia-informativa' });
+        striscia.innerHTML = `<strong>Bentornato.</strong> ${torna}`;
+        document.getElementById('contenuto').prepend(striscia);
+    }
 
     if (avviso) {
         riquadro.replaceChildren(errore(avviso));
@@ -462,6 +474,44 @@ async function vistaRimborsi() {
 
 /* --- instradamento ---------------------------------------------------------------- */
 
+
+/**
+ * Schermata del funzionario. Le note dei cittadini arrivano dall'API come testo e vengono
+ * inserite con `innerHTML`: DIFETTO INTENZIONALE (L15, capitolo 4). Il codice che le rende è il
+ * punto in cui una nota scritta male diventa codice eseguito sul browser del funzionario.
+ */
+async function vistaSportello() {
+    const dati = await api('/api/sportello/pratiche');
+
+    const righe = dati.elementi.map((p) => {
+        const cellaNote = el('td');
+        (p.note || []).forEach((n) => {
+            const nota = el('div', { classe: 'nota-cittadino' });
+            nota.innerHTML = n.corpo;
+            cellaNote.append(nota);
+        });
+
+        return el('tr', {},
+            el('td', { testo: p.protocollo }),
+            el('td', { testo: p.servizio }),
+            el('td', { testo: p.codice_fiscale }),
+            cellaNote);
+    });
+
+    mostra(
+        el('h1', { testo: 'Sportello' }),
+        el('p', { classe: 'sottotitolo', testo: 'Pratiche assegnate al suo ufficio, con le note dei contribuenti.' }),
+        el('div', { classe: 'pannello' },
+            el('table', {},
+                el('thead', {}, el('tr', {},
+                    el('th', { testo: 'Protocollo' }),
+                    el('th', { testo: 'Servizio' }),
+                    el('th', { testo: 'Contribuente' }),
+                    el('th', { testo: 'Note' }))),
+                el('tbody', {}, ...righe))),
+    );
+}
+
 const rotte = [
     [/^#\/$/, vistaCasa],
     [/^#\/servizi$/, vistaServizi],
@@ -473,6 +523,7 @@ const rotte = [
     [/^#\/pratiche$/, vistaPratiche, true],
     [/^#\/pratica\/(\d+)$/, vistaPratica, true],
     [/^#\/rimborsi$/, vistaRimborsi, true],
+    [/^#\/sportello$/, vistaSportello, true],
 ];
 
 async function instrada() {

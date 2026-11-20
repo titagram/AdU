@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContattiController;
 use App\Http\Controllers\Api\RimborsoController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,8 @@ Route::get('/health', [AreaController::class, 'health']);
 // DIFETTO INTENZIONALE (L22, capitolo 2): nessun limite ai tentativi. La storia del `.git`
 // racconta perché: «rate limit disattivato per il collaudo, riattivare prima della produzione».
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::match(['get', 'post'], '/contatti', [ContattiController::class, 'mostra']);
 
 Route::post('/recupera-password', [AuthController::class, 'recupera']);
 Route::post('/reimposta-password', [AuthController::class, 'reimposta']);
@@ -41,4 +44,8 @@ Route::middleware('auth.jwt')->group(function () {
     Route::get('/admin/export', [AreaController::class, 'esportaContribuenti']);
     Route::get('/pratiche/{id}/allegato', [AreaController::class, 'scaricaAllegato'])->whereNumber('id');
     Route::post('/pratiche/{id}/allegato', [AreaController::class, 'caricaAllegato'])->whereNumber('id');
+
+    // Capitolo 4 — le note che il funzionario legge.
+    Route::post('/pratiche/{id}/nota', [AreaController::class, 'scriviNota'])->whereNumber('id');
+    Route::get('/sportello/pratiche', [AreaController::class, 'praticheDelFunzionario']);
 });

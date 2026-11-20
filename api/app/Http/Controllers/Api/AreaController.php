@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cartella;
+use App\Models\NotaPratica;
 use App\Models\Pratica;
 use App\Models\Rimborso;
 use App\Models\Utente;
@@ -268,5 +269,62 @@ class AreaController extends Controller
             'allegato' => $nome,
             'scaricabile_da' => '/api/pratiche/'.$id.'/allegato?file='.urlencode($nome),
         ]);
+    }
+
+    /**
+     * DIFETTO INTENZIONALE (L15, capitolo 4): nota scritta dal cittadino, conservata così com'è.
+     *
+     * Il testo non viene ripulito perché «tanto la nota la legge solo il funzionario». Il
+     * funzionario la legge in due posti, e in entrambi finisce nell'HTML.
+     */
+    public function scriviNota(Request $request, int $id): JsonResponse
+    {
+        $dati = $request->validate([
+            'corpo' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $utente = $request->attributes->get('utente');
+
+        $pratica = Pratica::where('codice_fiscale', $utente->codice_fiscale)->find($id);
+
+        if ($pratica === null) {
+            return response()->json(['errore' => 'Pratica non trovata.'], 404);
+        }
+
+        $nota = NotaPratica::create([
+            'pratica_id' => $pratica->id,
+            'autore_id' => $utente->id,
+            'corpo' => $dati['corpo'],
+            'visibile_al_cittadino' => true,
+            'creata_il' => now(),
+        ]);
+
+        return response()->json(['nota' => $nota], 201);
+    }
+
+    /**
+     * Le pratiche del funzionario, con le note dei cittadini.
+     *
+     * Qui il controllo di ruolo c'è davvero: è il difetto complementare a L03, per far vedere
+     * che il problema del capitolo 4 non è l'accesso ai dati — è quello che i dati fanno
+     * quando arrivano al browser di chi li legge.
+     */
+    public function praticheDelFunzionario(Request $request): JsonResponse
+    {
+        $utente = $request->attributes->get('utente');
+
+        if (! in_array($utente->ruolo, ['funzionario', 'amministratore'], true)) {
+            return response()->json(['errore' => 'Riservato al personale.'], 403);
+        }
+
+        $pratiche = Pratica::when(
+            $utente->ruolo === 'funzionario',
+            fn ($q) => $q->where('funzionario_id', $utente->id),
+        )->with(['note' => fn ($q) => $q->orderBy('creata_il')])
+            ->orderByDesc('aperta_il')
+            ->limit(50)
+            ->get();
+
+        return response()->json(['elementi' => $pratiche]);
     }
 }

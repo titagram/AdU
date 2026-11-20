@@ -378,6 +378,9 @@ sicurezza quel diff vale più di cento slide.
 | Assegnazione di massa (L05) | `api` · `PATCH /api/profilo` | cambio del proprio codice fiscale, quindi dei dati che il portale mostra |
 | Deserializzazione ed `eval` (L23) | `api` · `/api/profilo/preferenze`, `/api/pratiche/importa` | oggetti costruiti dal client e condizioni PHP eseguite |
 | Caricamento non sicuro (L26) | `api` · `POST /api/pratiche/{id}/allegato` | un `.html` accettato come `text/plain` e servito come pagina |
+| XSS riflessa (L14) | `api` · `GET /api/contatti` | il modulo pubblico restituisce l'input concatenato |
+| XSS conservata (L15) | `api` · note; `web` · `#/sportello` | la nota del cittadino esegue nel browser del funzionario e legge il token |
+| XSS nel DOM (L16) | `web` · `?torna=` | codice eseguito senza che il server lo veda |
 
 Verificato con prove eseguite, non dichiarate:
 
@@ -465,6 +468,17 @@ didattico è che il difetto non è nel posto sbagliato: sono i controlli a manca
 
 Il seed prepara anche il bersaglio di L04: un allegato vero (`ricevuta.pdf`) sulla pratica di
 Giulia, così lo scaricamento legittimo funziona e la traversal si distingue da un endpoint rotto.
+
+### Capitolo 4 — il browser (fatto)
+
+La prima schermata per il personale interno: `#/sportello`, visibile solo a funzionari e
+amministratori, che elenca le pratiche assegnate con le note dei contribuenti. È necessaria
+perché senza un lettore di note la XSS conservata non avrebbe un bersaglio — ed è anche il punto
+in cui il difetto vive: `nota.innerHTML = n.corpo` in `web/app.js`.
+
+La stessa nota è resa, senza escape, anche dalla pagina legacy `/sportello/pratica/{id}`: due
+sink per un solo dato, come capita nei sistemi che hanno sostituito un'interfaccia senza spegnere
+la vecchia.
 
 ### Esposizione di rete
 

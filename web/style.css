@@ -219,3 +219,7 @@ button.secondario, .pulsante.secondario { background: transparent; color: var(--
     .contenuto { padding: 1.5rem 1rem 3rem; }
     .righe-dettaglio { grid-template-columns: 1fr; }
 }
+
+/* Sportello del funzionario e striscia di benvenuto. */
+.striscia-informativa { background: #eef3f7; border-left: 4px solid #2c5f8a; padding: .7rem 1rem; margin-bottom: 1.2rem; font-size: .92rem; }
+.nota-cittadino { border-left: 3px solid #cfdae3; padding: .3rem .6rem; margin: .35rem 0; font-size: .9rem; background: #fafcfd; }

