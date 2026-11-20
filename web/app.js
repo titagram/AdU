@@ -21,6 +21,10 @@ const stato = {
     utente: JSON.parse(localStorage.getItem(CHIAVI.utente) || 'null'),
 };
 
+// Messaggio da mostrare una volta sola: serve a spiegare perché si è finiti sulla pagina di
+// accesso (sessione scaduta), invece di lasciar cadere l'utente lì senza una parola.
+let avviso = null;
+
 const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 const data = new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium' });
 const dataOra = new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' });
@@ -74,22 +78,42 @@ function errore(descrizione) {
 
 /* --- client API ------------------------------------------------------------------ */
 
-async function api(percorso, opzioni = {}) {
+async function api(percorso, { conToken = true, ...opzioni } = {}) {
     const intestazioni = { Accept: 'application/json', ...(opzioni.headers || {}) };
 
     if (opzioni.body !== undefined) {
         intestazioni['Content-Type'] = 'application/json';
     }
 
-    if (stato.token) {
+    const autenticata = conToken && Boolean(stato.token);
+
+    if (autenticata) {
         intestazioni.Authorization = `Bearer ${stato.token}`;
     }
 
-    const risposta = await fetch(API + percorso, { ...opzioni, headers: intestazioni });
+    let risposta;
 
-    if (risposta.status === 401) {
+    try {
+        risposta = await fetch(API + percorso, { ...opzioni, headers: intestazioni });
+    } catch {
+        throw new Error('Impossibile contattare il servizio: controlla la connessione e riprova.');
+    }
+
+    // Un 401 significa "sessione scaduta" solo se avevamo davvero mandato un token: sulla
+    // richiesta di accesso lo stesso codice vuol dire "credenziali sbagliate", ed è un errore
+    // di chi sta scrivendo, non della sessione.
+    if (risposta.status === 401 && autenticata) {
         esciLocalmente();
-        throw new Error('Sessione scaduta: accedi di nuovo.');
+        avviso = 'Sessione scaduta: accedi di nuovo.';
+        location.hash = '#/accedi';
+
+        const scaduta = new Error(avviso);
+        scaduta.sessioneScaduta = true;
+        throw scaduta;
+    }
+
+    if (risposta.status === 429) {
+        throw new Error('Troppi tentativi ravvicinati: attendi un minuto e riprova.');
     }
 
     const corpo = await risposta.json().catch(() => ({}));
@@ -239,6 +263,7 @@ function vistaAccedi() {
 
         try {
             const esito = await api('/api/login', {
+                conToken: false,
                 method: 'POST',
                 body: JSON.stringify({
                     codice_fiscale: campoCf.value.trim().toUpperCase(),
@@ -252,6 +277,11 @@ function vistaAccedi() {
             riquadro.replaceChildren(errore(e.message));
         }
     });
+
+    if (avviso) {
+        riquadro.replaceChildren(errore(avviso));
+        avviso = null;
+    }
 
     mostra(
         el('h1', { testo: 'Area riservata' }),
@@ -454,6 +484,9 @@ async function instrada() {
         const argomenti = percorso.match(trovata[0]).slice(1).map((v) => (v === undefined ? v : decodeURIComponent(v)));
         await vista(...argomenti.map((v) => (/^\d+$/.test(v) ? Number(v) : v)));
     } catch (e) {
+        // La sessione scaduta ha già portato alla pagina di accesso con il proprio avviso.
+        if (e.sessioneScaduta) return;
+
         mostra(el('h1', { testo: 'Si è verificato un problema' }), errore(e.message));
     }
 }
