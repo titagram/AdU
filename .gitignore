@@ -1,0 +1,24 @@
+# Segreti e configurazione locale
+.env
+.env.*
+!.env.example
+
+# Dipendenze
+vendor/
+node_modules/
+
+# Artefatti di build
+dist/
+build/
+*.log
+
+# Volumi Docker e stato del laboratorio
+logs/
+storage/allegati/
+db/dump/
+
+# Sistema
+.DS_Store
+.idea/
+.vscode/
+*.swp
