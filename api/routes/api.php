@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AllegatiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContattiController;
+use App\Http\Controllers\Api\RegistrazioneController;
 use App\Http\Controllers\Api\RimborsoController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ Route::get('/health', [AreaController::class, 'health']);
 // DIFETTO INTENZIONALE (L22, capitolo 2): nessun limite ai tentativi. La storia del `.git`
 // racconta perché: «rate limit disattivato per il collaudo, riattivare prima della produzione».
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::post('/registrazione', [RegistrazioneController::class, 'registra']);
 
 Route::match(['get', 'post'], '/contatti', [ContattiController::class, 'mostra']);
 

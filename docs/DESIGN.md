@@ -497,6 +497,20 @@ funzioni, e la ragione per cui la trappola `/*` va spiegata.
 Il report è uno script separato (`public/sportello/report.php`) richiamato con `shell_exec`:
 il difetto nasce da un riuso ragionevole, non da una scorciatoia.
 
+### Registrazione del cittadino
+
+`POST /api/registrazione` e la pagina `#/registrati` esistono perché il portale vero ha smesso di
+dipendere dallo sportello fisico nel 2021: senza, il laboratorio racconta un'agenzia in cui
+nessuno può iscriversi.
+
+Le debolezze sono coerenti con il resto: password in MD5 come il seed (L08), solo la forma del
+codice fiscale e non il carattere di controllo, messaggi che distinguono «codice fiscale già
+registrato» da «email già registrata» (L22). Una scelta va invece nella direzione opposta: il
+ruolo **non** si legge dal corpo della richiesta, viene forzato a `cittadino`. Un `ruolo:
+amministratore` in registrazione salterebbe la scala dei privilegi dal primo gradino all'ultimo
+e romperebbe l'invariante I2; il difetto di assegnazione di massa resta dove si insegna (L05).
+Il test `RegistrazioneTest` difende questa scelta.
+
 ### Capitolo 6 — soldi e perimetro (fatto)
 
 L'ultimo capitolo mette insieme le scale: il CSRF che sposta un rimborso, la corsa che lo paga tre

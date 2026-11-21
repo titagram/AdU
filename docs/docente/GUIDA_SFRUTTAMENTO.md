@@ -561,6 +561,11 @@ finestra perché la corsa si possa vincere a mano.
 
 ## L06/L05 — Escalation
 
+**La registrazione non è un vettore.** `POST /api/registrazione` accetta un `ruolo` nel corpo
+della richiesta e lo ignora: il server scrive `cittadino`. Chi prova a registrarsi come
+amministratore perde tempo — la scalata passa da L05 (profilo) o da L15 (browser del funzionario).
+
+
 Il secondo vettore di L05 vive qui: `POST /sportello/utenti/{id}` con `ruolo=amministratore`, da
 una sessione funzionario. Provato il 20 novembre 2026: il ruolo di Giulia passa a `amministratore`.
 

@@ -81,7 +81,12 @@ class InvariantiTest extends TestCase
         );
     }
 
-    public function test_la_cartella_di_un_altro_contribuente_non_e_visibile(): void
+    /**
+     * L01: il difetto è voluto. Quando questo test fu scritto (M1) il portale era ancora
+     * protetto; dal capitolo 3 la cartella altrui si legge, e il test deve descrivere il
+     * laboratorio per come è, altrimenti non difende niente.
+     */
+    public function test_la_cartella_di_un_altro_contribuente_e_leggibile_l01(): void
     {
         $token = $this->postJson('/api/login', [
             'codice_fiscale' => 'NREGLI90A41H501G',
@@ -90,12 +95,22 @@ class InvariantiTest extends TestCase
 
         $altrui = \App\Models\Cartella::where('codice_fiscale', '!=', 'NREGLI90A41H501G')->firstOrFail();
 
-        $this->withHeader('Authorization', "Bearer {$token}")
+        $risposta = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/cartelle/{$altrui->id}")
-            ->assertStatus(404);
+            ->assertOk();
+
+        $this->assertSame(
+            $altrui->codice_fiscale,
+            $risposta->json('cartella.codice_fiscale'),
+            'L01: la cartella letta è di un altro contribuente, ed è questo il difetto'
+        );
     }
 
-    public function test_il_logout_revoca_il_token(): void
+    /**
+     * L09: il difetto è voluto. Il logout non revoca il token, che non ha nemmeno una scadenza:
+     * è la ragione per cui la XSS del capitolo 4 vale per sempre.
+     */
+    public function test_il_logout_non_revoca_il_token_l09(): void
     {
         $token = $this->postJson('/api/login', [
             'codice_fiscale' => 'NREGLI90A41H501G',
@@ -103,7 +118,10 @@ class InvariantiTest extends TestCase
         ])->json('token');
 
         $this->withHeader('Authorization', "Bearer {$token}")->postJson('/api/logout')->assertOk();
-        $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/me')->assertStatus(401);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me')
+            ->assertOk();
     }
 
     public function test_il_portale_espone_la_posizione_della_scheda_account(): void

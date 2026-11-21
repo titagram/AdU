@@ -267,6 +267,101 @@ function vistaComeFare() {
     );
 }
 
+
+/**
+ * Registrazione del cittadino. La pagina esiste perché il portale vero l'ha avuta dal 2021; il
+ * ruolo però lo decide il server, non il corpo della richiesta.
+ */
+function vistaRegistrati() {
+    const campi = {
+        nome: el('input', { id: 'nome', autocomplete: 'given-name', maxlength: '60', required: 'required' }),
+        cognome: el('input', { id: 'cognome', autocomplete: 'family-name', maxlength: '60', required: 'required' }),
+        cf: el('input', { id: 'cf', name: 'codice_fiscale', maxlength: '16', required: 'required' }),
+        email: el('input', { id: 'email', type: 'email', autocomplete: 'email', required: 'required' }),
+        nascita: el('input', { id: 'nascita', type: 'date', required: 'required' }),
+        sesso: el('select', { id: 'sesso' },
+            el('option', { value: 'M', testo: 'Maschile' }),
+            el('option', { value: 'F', testo: 'Femminile' })),
+        comune: el('input', { id: 'comune', placeholder: 'Roma', required: 'required' }),
+        indirizzo: el('input', { id: 'indirizzo', autocomplete: 'street-address', maxlength: '120', required: 'required' }),
+        cap: el('input', { id: 'cap', inputmode: 'numeric', maxlength: '5', placeholder: '00165', required: 'required' }),
+        provincia: el('input', { id: 'provincia', maxlength: '2', placeholder: 'RM', required: 'required' }),
+        pw: el('input', { id: 'pw', type: 'password', autocomplete: 'new-password', minlength: '8', required: 'required' }),
+    };
+
+    const riquadro = el('div');
+
+    const form = el('form', { classe: 'modulo' },
+        el('div', { classe: 'campo' }, el('label', { for: 'nome', testo: 'Nome' }), campi.nome),
+        el('div', { classe: 'campo' }, el('label', { for: 'cognome', testo: 'Cognome' }), campi.cognome),
+        el('div', { classe: 'campo' },
+            el('label', { for: 'cf', testo: 'Codice fiscale' }),
+            campi.cf,
+            el('div', { classe: 'aiuto', testo: 'Sedici caratteri, come sulla tessera sanitaria.' })),
+        el('div', { classe: 'campo' }, el('label', { for: 'email', testo: 'Email' }), campi.email),
+        el('div', { classe: 'campo' }, el('label', { for: 'nascita', testo: 'Data di nascita' }), campi.nascita),
+        el('div', { classe: 'campo' }, el('label', { for: 'sesso', testo: 'Sesso' }), campi.sesso),
+        el('div', { classe: 'campo' }, el('label', { for: 'comune', testo: 'Comune di nascita' }), campi.comune),
+        el('div', { classe: 'campo' }, el('label', { for: 'indirizzo', testo: 'Indirizzo di residenza' }), campi.indirizzo),
+        el('div', { classe: 'campo' }, el('label', { for: 'cap', testo: 'CAP' }), campi.cap),
+        el('div', { classe: 'campo' }, el('label', { for: 'provincia', testo: 'Provincia' }), campi.provincia),
+        el('div', { classe: 'campo' },
+            el('label', { for: 'pw', testo: 'Password' }),
+            campi.pw,
+            el('div', { classe: 'aiuto', testo: 'Almeno otto caratteri.' })),
+        el('button', { type: 'submit', testo: 'Registrati' }),
+        riquadro,
+    );
+
+    form.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        riquadro.replaceChildren();
+
+        try {
+            const esito = await api('/api/registrazione', {
+                conToken: false,
+                method: 'POST',
+                body: JSON.stringify({
+                    nome: campi.nome.value.trim(),
+                    cognome: campi.cognome.value.trim(),
+                    codice_fiscale: campi.cf.value.trim().toUpperCase(),
+                    email: campi.email.value.trim(),
+                    data_nascita: campi.nascita.value,
+                    sesso: campi.sesso.value,
+                    comune_nascita: campi.comune.value.trim(),
+                    indirizzo: campi.indirizzo.value.trim(),
+                    cap: campi.cap.value.trim(),
+                    provincia: campi.provincia.value.trim().toUpperCase(),
+                    password: campi.pw.value,
+                }),
+            });
+
+            // La registrazione non emette un token: si passa dal login, come farebbe una persona.
+            const accesso = await api('/api/login', {
+                conToken: false,
+                method: 'POST',
+                body: JSON.stringify({
+                    codice_fiscale: campi.cf.value.trim().toUpperCase(),
+                    password: campi.pw.value,
+                }),
+            });
+
+            entra(accesso.token, accesso.utente);
+            location.hash = '#/area';
+        } catch (e) {
+            riquadro.replaceChildren(errore(e.message));
+        }
+    });
+
+    mostra(
+        el('h1', { testo: 'Registrazione' }),
+        el('p', { classe: 'sottotitolo', testo: 'Serve per chi non ha ricevuto le credenziali allo sportello.' }),
+        el('div', { classe: 'pannello' }, form),
+        el('p', { classe: 'sottotitolo' },
+            el('a', { href: '#/accedi', testo: 'Hai già un account? Accedi.' })),
+    );
+}
+
 function vistaAccedi() {
     const campoCf = el('input', { id: 'cf', name: 'codice_fiscale', autocomplete: 'username', maxlength: '16', required: 'required' });
     const campoPw = el('input', { id: 'pw', name: 'password', type: 'password', autocomplete: 'current-password', required: 'required' });
@@ -298,7 +393,17 @@ function vistaAccedi() {
                 }),
             });
 
-            entra(esito.token, esito.utente);
+            // La registrazione non emette un token: si passa dal login, come farebbe una persona.
+            const accesso = await api('/api/login', {
+                conToken: false,
+                method: 'POST',
+                body: JSON.stringify({
+                    codice_fiscale: campi.cf.value.trim().toUpperCase(),
+                    password: campi.pw.value,
+                }),
+            });
+
+            entra(accesso.token, accesso.utente);
             location.hash = '#/area';
         } catch (e) {
             riquadro.replaceChildren(errore(e.message));
@@ -323,6 +428,8 @@ function vistaAccedi() {
         el('h1', { testo: 'Area riservata' }),
         el('p', { classe: 'sottotitolo', testo: 'Inserisci le credenziali ricevute allo sportello.' }),
         el('div', { classe: 'pannello' }, form),
+        el('p', { classe: 'sottotitolo' },
+            el('a', { href: '#/registrati', testo: 'Non hai le credenziali? Registrati.' })),
     );
 }
 
@@ -568,6 +675,7 @@ const rotte = [
     [/^#\/servizi$/, vistaServizi],
     [/^#\/come-fare$/, vistaComeFare],
     [/^#\/accedi$/, vistaAccedi],
+    [/^#\/registrati$/, vistaRegistrati],
     [/^#\/area$/, vistaArea, true],
     [/^#\/cartelle$/, vistaCartelle, true],
     [/^#\/cartella\/(\d+)$/, vistaCartella, true],

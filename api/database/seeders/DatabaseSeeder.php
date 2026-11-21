@@ -351,7 +351,13 @@ class DatabaseSeeder extends Seeder
         }
 
         // DIFETTO INTENZIONALE (L17): quattro cifre, ricavabili dall'identificativo del rimborso.
-        DB::table('rimborsi')->update(['otp' => DB::raw("LPAD((id * 7) % 10000, 4, '0')")]);
+        // L'OTP è (id * 7) % 10000 su quattro cifre, calcolato in PHP: la versione SQL usava
+        // LPAD, che esiste in MySQL ma non in SQLite, e la suite gira su SQLite in memoria.
+        foreach (DB::table('rimborsi')->pluck('id') as $idRimborso) {
+            DB::table('rimborsi')->where('id', $idRimborso)->update([
+                'otp' => str_pad((string) (($idRimborso * 7) % 10000), 4, '0', STR_PAD_LEFT),
+            ]);
+        }
         foreach (array_chunk($iban, 200) as $chunk) {
             DB::table('iban')->insert($chunk);
         }
