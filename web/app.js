@@ -387,22 +387,12 @@ function vistaAccedi() {
         riquadro.replaceChildren();
 
         try {
-            const esito = await api('/api/login', {
+            const accesso = await api('/api/login', {
                 conToken: false,
                 method: 'POST',
                 body: JSON.stringify({
                     codice_fiscale: campoCf.value.trim().toUpperCase(),
                     password: campoPw.value,
-                }),
-            });
-
-            // La registrazione non emette un token: si passa dal login, come farebbe una persona.
-            const accesso = await api('/api/login', {
-                conToken: false,
-                method: 'POST',
-                body: JSON.stringify({
-                    codice_fiscale: campi.cf.value.trim().toUpperCase(),
-                    password: campi.pw.value,
                 }),
             });
 
