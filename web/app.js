@@ -193,29 +193,30 @@ function disegnaNavigazione() {
 /* --- viste pubbliche -------------------------------------------------------------- */
 
 function vistaCasa() {
+    const servizi = [
+        ['Posizione fiscale', 'Consulta le cartelle, gli importi dovuti e le scadenze.', '#/cartelle'],
+        ['Pratiche', 'Verifica lo stato delle richieste presentate agli uffici.', '#/pratiche'],
+        ['Rimborsi', 'Consulta gli esiti delle liquidazioni e gli accrediti.', '#/rimborsi'],
+    ];
+
     mostra(
-        el('h1', { testo: 'I tuoi tributi, in un posto solo' }),
-        el('p', { classe: 'sottotitolo', testo: 'Consultare la posizione fiscale, le pratiche e i rimborsi.' }),
-
-        el('div', { classe: 'griglia' },
-            el('div', { classe: 'tessera' },
-                el('h3', { testo: 'La mia posizione' }),
-                el('p', { testo: 'Cartelle, scadenze e importi dovuti.' }),
-                el('a', { classe: 'pulsante', href: '#/accedi', testo: 'Accedi' })),
-            el('div', { classe: 'tessera' },
-                el('h3', { testo: 'Pratiche' }),
-                el('p', { testo: 'Lo stato delle richieste presentate agli uffici.' }),
-                el('a', { classe: 'pulsante secondario', href: '#/come-fare', testo: 'Come fare per' })),
-            el('div', { classe: 'tessera' },
-                el('h3', { testo: 'Rimborsi' }),
-                el('p', { testo: 'Esiti delle liquidazioni e accrediti.' }),
-                el('a', { classe: 'pulsante secondario', href: '#/servizi', testo: 'Servizi' })),
-
-            el('div', { classe: 'pannello' },
-                el('h2', { testo: 'Accesso' }),
-                el('p', { testo: 'L\'accesso all\'area riservata richiede le credenziali rilasciate allo sportello.' }),
-                el('p', { classe: 'sottotitolo', testo: 'Per il laboratorio: il docente fornisce la scheda account con codice fiscale e password.' })),
-        ),
+        el('h1', { testo: 'Sportello telematico' }),
+        el('p', { classe: 'sottotitolo', testo: 'Servizi fiscali online per i cittadini.' }),
+        el('div', { classe: 'sportello-home' },
+            el('section', {},
+                el('h2', { testo: 'Servizi al cittadino' }),
+                el('ul', { classe: 'elenco-servizi' },
+                    ...servizi.map(([titolo, descrizione, href]) =>
+                        el('li', {},
+                            el('a', { href, testo: titolo }),
+                            el('p', { testo: descrizione }))))),
+            el('aside', { classe: 'accesso-riservato' },
+                el('h2', { testo: 'Area riservata' }),
+                el('p', { testo: stato.utente
+                    ? 'Torna alla tua area personale.'
+                    : 'Per accedere usa il codice fiscale e la password della scheda account.' }),
+                el('a', { classe: 'pulsante', href: stato.utente ? '#/area' : '#/accedi',
+                    testo: stato.utente ? 'Vai alla tua area' : 'Accedi all’area riservata' }))),
     );
 }
 
@@ -226,7 +227,7 @@ function vistaServizi() {
         ['Posizione fiscale', 'Cartelle, importi e scadenze.', '#/cartelle'],
         ['Pratiche', 'Richieste in corso e loro stato.', '#/pratiche'],
         ['Rimborsi', 'Liquidazioni e accrediti.', '#/rimborsi'],
-        ['Assistenza', 'Contatti e segnalazioni.', `${API}/api/contatti`],
+        ['Assistenza', 'Contatti e segnalazioni.', '/assistenza', 'avviso di servizio'],
     ];
 
     const inArrivo = [
@@ -238,18 +239,20 @@ function vistaServizi() {
         el('h1', { testo: 'Servizi' }),
         el('p', { classe: 'sottotitolo', testo: 'Elenco dei servizi disponibili al cittadino.' }),
         el('div', { classe: 'griglia' },
-            ...disponibili.map(([titolo, descrizione, href]) =>
+            ...disponibili.map(([titolo, descrizione, href, disponibilita]) =>
                 el('a', { classe: 'tessera', href },
                     el('h3', { testo: titolo }),
                     el('p', { testo: descrizione }),
-                    el('span', { classe: 'etichetta approvato', testo: 'disponibile' }))),
+                    el('span', {
+                        classe: `etichetta ${disponibilita ? 'in_sospeso' : 'approvato'}`,
+                        testo: disponibilita ?? 'disponibile',
+                    }))),
             ...inArrivo.map(([titolo, descrizione]) =>
                 el('div', { classe: 'tessera' },
                     el('h3', { testo: titolo }),
                     el('p', { testo: descrizione }),
                     el('span', { classe: 'etichetta in_lavorazione', testo: 'non ancora disponibile' }))),
         ),
-        el('p', { classe: 'sottotitolo', testo: 'Le prime tre voci richiedono l\'accesso all\'area riservata.' }),
     );
 }
 

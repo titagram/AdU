@@ -3,20 +3,25 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Agenzia delle Uscite — area riservata</title>
+    <title>Agenzia delle Uscite — Sportello telematico</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header class="intestazione">
-    <a class="marchio" href="#/">
-        <span class="marchio-segno" aria-hidden="true"></span>
-        <span class="marchio-testo">
-            <strong>Agenzia delle Uscite</strong>
-            <small>Amministrazione fiscale della Repubblica Immaginaria</small>
-        </span>
-    </a>
+    <div class="ente">In una Repubblica lontana lontana...</div>
+    <div class="testata">
+        <a class="marchio" href="#/">
+            <span class="marchio-segno" aria-hidden="true">AdU</span>
+            <span class="marchio-testo">
+                <strong>Agenzia delle Uscite</strong>
+                <small>Amministrazione fiscale</small>
+            </span>
+        </a>
+    </div>
 
-    <nav class="navigazione" id="navigazione">
+    <nav class="navigazione" id="navigazione" aria-label="Navigazione principale">
+        <a href="#/">Home</a>
         <a href="#/servizi">Servizi</a>
         <a href="#/come-fare">Come fare per</a>
         <span id="voce-accesso"></span>
@@ -24,15 +29,14 @@
 </header>
 
 <div class="avviso-laboratorio">
-    <strong>Laboratorio didattico.</strong> Sito fittizio, deliberatamente vulnerabile, in
-    esecuzione solo su <code>127.0.0.1</code>. Ente, persone e importi non esistono.
+    <strong>Laboratorio didattico.</strong> Ente, persone e importi sono fittizi. Il portale contiene vulnerabilità intenzionali.
 </div>
 
 <main id="contenuto" class="contenuto" aria-live="polite"></main>
 
 <footer class="piede">
     <div>
-        <strong>Agenzia delle Uscite</strong> — ente immaginario a fini didattici.
+        <strong>Agenzia delle Uscite</strong> · Sportello telematico
     </div>
     <div class="piede-nota">
         Nessun dato reale. Non inserire informazioni personali.

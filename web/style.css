@@ -1,12 +1,13 @@
 :root {
-    --blu: #0b3c5d;
-    --blu-scuro: #072a42;
-    --blu-tenue: #e8eef4;
+    --blu: #174674;
+    --blu-scuro: #17324f;
+    --blu-tenue: #edf2f7;
     --testo: #1c2b36;
     --testo-tenue: #5b6b78;
     --bordo: #d3dbe2;
-    --sfondo: #f4f6f8;
-    --oro: #b28b3c;
+    --sfondo: #fff;
+    --larghezza: 68rem;
+    --margine: max(1.25rem, calc((100% - var(--larghezza)) / 2));
     --rosso: #a4262c;
     --verde: #1f6b3f;
 }
@@ -15,6 +16,9 @@
 
 body {
     margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     font-family: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
     color: var(--testo);
     background: var(--sfondo);
@@ -25,79 +29,101 @@ a { color: var(--blu); }
 
 /* --- intestazione ---------------------------------------------------------------- */
 
-.intestazione {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: .9rem 2rem;
-    background: var(--blu);
-    color: #fff;
-    border-bottom: 4px solid var(--oro);
+.ente, .testata, .navigazione, .avviso-laboratorio, .piede {
+    padding-inline: var(--margine);
 }
 
-.marchio {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
+.ente {
+    padding-block: .4rem;
+    background: var(--blu-scuro);
     color: #fff;
+    font-size: .85rem;
+}
+
+.testata { padding-block: 1.55rem; }
+
+.marchio {
+    display: inline-flex;
+    align-items: center;
+    gap: .85rem;
+    color: var(--blu-scuro);
     text-decoration: none;
 }
 
 .marchio-segno {
-    width: 2.2rem;
-    height: 2.2rem;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    position: relative;
+    display: grid;
+    place-items: center;
+    width: 3.15rem;
+    height: 3.15rem;
     flex: none;
+    border: 1px solid currentColor;
+    font: bold 1.15rem Georgia, serif;
 }
 
-.marchio-segno::after {
-    content: "";
-    position: absolute;
-    inset: .45rem;
-    border-radius: 50%;
-    background: var(--oro);
+.marchio-testo strong { display: block; font-size: clamp(1.16rem, 3vw, 1.65rem); line-height: 1.2; }
+.marchio-testo small { display: block; color: var(--testo-tenue); font-size: .85rem; }
+
+.navigazione {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .1rem 1.5rem;
+    background: var(--blu);
+    color: #fff;
+    font-size: .92rem;
 }
 
-.marchio-testo strong { display: block; font-size: 1.05rem; letter-spacing: .01em; }
-.marchio-testo small { display: block; font-size: .74rem; opacity: .8; }
-
-.navigazione { display: flex; align-items: center; gap: 1.4rem; font-size: .92rem; }
-.navigazione a { color: #fff; text-decoration: none; opacity: .9; }
-.navigazione a:hover { opacity: 1; text-decoration: underline; }
-
-.navigazione .accesso {
-    border: 1px solid rgba(255, 255, 255, .6);
-    padding: .4rem .9rem;
-    border-radius: 3px;
-    opacity: 1;
-}
+.navigazione a { display: inline-block; padding-block: .7rem; color: inherit; text-decoration: none; }
+.navigazione a:hover { text-decoration: underline; text-underline-offset: .2em; }
+#voce-accesso { margin-inline-start: auto; }
+.navigazione .accesso { font-weight: 650; }
 
 .avviso-laboratorio {
-    background: #fff6dd;
-    border-bottom: 1px solid #e8d9a8;
-    color: #5a4a12;
+    padding-block: .62rem;
+    background: #f6f4eb;
+    border-bottom: 1px solid #e2dece;
+    color: #4e4837;
     font-size: .85rem;
-    padding: .55rem 2rem;
 }
 
-.avviso-laboratorio code { font-size: .82rem; }
+:focus-visible { outline: 2px solid #956012; outline-offset: 3px; }
+.navigazione :focus-visible { outline: 2px solid #ffe3a6; outline-offset: -2px; }
 
 /* --- struttura ------------------------------------------------------------------- */
 
 .contenuto {
-    max-width: 62rem;
+    width: min(100% - 2.5rem, var(--larghezza));
+    flex: 1;
     margin: 0 auto;
-    padding: 2.2rem 1.5rem 4rem;
-    min-height: 55vh;
+    padding: 2.35rem 0 4rem;
 }
 
-h1 { font-size: 1.7rem; color: var(--blu-scuro); margin: 0 0 .4rem; font-weight: 600; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); color: var(--blu-scuro); margin: 0 0 .45rem; line-height: 1.2; }
 h2 { font-size: 1.15rem; color: var(--blu-scuro); margin: 2rem 0 .6rem; }
 p.sottotitolo { color: var(--testo-tenue); margin-top: 0; }
+
+.sportello-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, .47fr);
+    align-items: start;
+    gap: clamp(1.5rem, 5vw, 4.5rem);
+    margin-top: 2.3rem;
+}
+
+.sportello-home h2 { margin: 0 0 .75rem; font-size: 1.25rem; }
+.elenco-servizi { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--bordo); }
+.elenco-servizi li { padding: .9rem 0; border-bottom: 1px solid var(--bordo); }
+.elenco-servizi a { font-weight: 650; text-underline-offset: .15em; }
+.elenco-servizi p { margin: .22rem 0 0; color: var(--testo-tenue); font-size: .95rem; }
+
+.accesso-riservato {
+    background: var(--blu-tenue);
+    border-top: 3px solid var(--blu);
+    padding: 1.15rem 1.25rem 1.35rem;
+}
+
+.accesso-riservato p { margin: 0 0 1rem; font-size: .95rem; }
+.pannello h2:first-child { margin-top: 0; }
 
 .pannello {
     background: #fff;
@@ -194,8 +220,8 @@ button.secondario, .pulsante.secondario { background: transparent; color: var(--
 
 .piede {
     border-top: 1px solid var(--bordo);
-    background: #fff;
-    padding: 1.4rem 2rem;
+    background: #f5f7fa;
+    padding-block: 1.2rem;
     font-size: .84rem;
     color: var(--testo-tenue);
     display: flex;
@@ -206,7 +232,7 @@ button.secondario, .pulsante.secondario { background: transparent; color: var(--
 
 .navigazione-utente { text-decoration: none; border-bottom: 1px dotted rgba(255, 255, 255, .5); }
 
-.azione-uscita { background: none; border: 0; color: #fff; cursor: pointer; font: inherit; text-decoration: underline; }
+.azione-uscita { background: none; padding: .5rem .25rem; border: 0; color: inherit; cursor: pointer; font: inherit; text-decoration: underline; }
 
 @media (max-width: 640px) {
     /* Le tabelle a cinque colonne non stanno in 390 px: scorrono dentro il pannello invece
@@ -214,9 +240,11 @@ button.secondario, .pulsante.secondario { background: transparent; color: var(--
     .pannello { overflow-x: auto; padding: 1rem; }
     table { min-width: 32rem; }
 
-    .intestazione { padding: .8rem 1rem; }
-    .navigazione { gap: .9rem; font-size: .85rem; }
-    .contenuto { padding: 1.5rem 1rem 3rem; }
+    .testata { padding-block: 1.1rem; }
+    .navigazione { gap: 0 1rem; font-size: .85rem; }
+    #voce-accesso { margin-inline-start: 0; }
+    .contenuto { padding-block: 1.5rem 3rem; }
+    .sportello-home { grid-template-columns: minmax(0, 1fr); margin-top: 1.6rem; }
     .righe-dettaglio { grid-template-columns: 1fr; }
 }
 
