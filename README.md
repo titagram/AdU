@@ -92,6 +92,10 @@ qualche minuto, perché costruisce l'immagine e scarica le dipendenze.
 Il seed gira una volta sola: se il database è già popolato, `up` non lo tocca. Per tornare allo
 stato iniziale c'è `lab:reset`.
 
+Dopo un aggiornamento del codice, usa di nuovo `docker compose up -d --build`. Anche il
+frontend ora viene costruito dal contenuto di `web/` e Compose sostituisce il container quando
+cambia l'immagine. I volumi con il database e gli allegati restano disponibili.
+
 ### Indirizzi
 
 | Servizio | Percorso | Note |
@@ -127,6 +131,9 @@ Da quel momento il portale risponde su `http://<indirizzo-tailscale>:8080` a tut
 dispositivi della tailnet, e solo a quelli: il traffico viaggia dentro WireGuard, quindi non
 serve un certificato. `ADU_CORS_ORIGINS` deve contenere **esattamente** l'indirizzo con cui apri
 il portale, altrimenti il browser blocca le risposte dell'API.
+
+Le email di recupero usano l'indirizzo indicato da `ADU_BIND_IP` sulla porta `8080`. Se apri il
+portale da un URL diverso, imposta anche `ADU_PORTALE_URL` con l'URL che usano gli studenti.
 
 Due trappole, entrambe già viste:
 

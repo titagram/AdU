@@ -107,8 +107,10 @@ async function api(percorso, { conToken = true, ...opzioni } = {}) {
     try {
         risposta = await fetch(API + percorso, { ...opzioni, headers: intestazioni });
     } catch {
+        opzioni.signal?.throwIfAborted();
         throw new Error('Impossibile contattare il servizio: controlla la connessione e riprova.');
     }
+    opzioni.signal?.throwIfAborted();
 
     // Un 401 significa "sessione scaduta" solo se avevamo davvero mandato un token: sulla
     // richiesta di accesso lo stesso codice vuol dire "credenziali sbagliate", ed è un errore
@@ -128,6 +130,7 @@ async function api(percorso, { conToken = true, ...opzioni } = {}) {
     }
 
     const corpo = await risposta.json().catch(() => ({}));
+    opzioni.signal?.throwIfAborted();
 
     if (!risposta.ok) {
         throw new Error(corpo.errore || `Errore ${risposta.status}`);
@@ -422,14 +425,85 @@ function vistaAccedi() {
         el('p', { classe: 'sottotitolo', testo: 'Inserisci le credenziali ricevute allo sportello.' }),
         el('div', { classe: 'pannello' }, form),
         el('p', { classe: 'sottotitolo' },
+            el('a', { href: '#/recupera-password', testo: 'Hai dimenticato la password?' })),
+        el('p', { classe: 'sottotitolo' },
             el('a', { href: '#/registrati', testo: 'Non hai le credenziali? Registrati.' })),
     );
 }
 
+function vistaRecuperaPassword() {
+    const codiceFiscale = el('input', { id: 'cf', autocomplete: 'username', maxlength: '16', required: 'required' });
+    const invia = el('button', { type: 'submit', testo: 'Invia il link' });
+    const esito = el('div', { 'aria-live': 'polite' });
+    const form = el('form', { classe: 'modulo' },
+        el('div', { classe: 'campo' }, el('label', { for: 'cf', testo: 'Codice fiscale' }), codiceFiscale),
+        invia, esito);
+
+    form.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        invia.disabled = true;
+        esito.replaceChildren();
+        try {
+            const dati = await api('/api/recupera-password', {
+                conToken: false,
+                method: 'POST',
+                body: JSON.stringify({ codice_fiscale: codiceFiscale.value.trim().toUpperCase() }),
+            });
+            esito.replaceChildren(el('p', { classe: 'messaggio esito', testo: dati.messaggio }));
+        } catch (e) {
+            esito.replaceChildren(errore(e.message));
+        } finally {
+            invia.disabled = false;
+        }
+    });
+
+    mostra(el('h1', { testo: 'Recupera la password' }), el('div', { classe: 'pannello' }, form),
+        el('a', { href: '#/accedi', testo: 'Torna all’accesso' }));
+}
+
+function vistaReimpostaPassword() {
+    const codice = new URLSearchParams(location.hash.split('?')[1]).get('codice');
+    const titolo = el('h1', { testo: 'Reimposta la password' });
+    if (!codice || !/^[a-f0-9]{64}$/.test(codice)) {
+        mostra(titolo, errore('Collegamento non valido. Richiedi un nuovo link.'),
+            el('a', { href: '#/recupera-password', testo: 'Richiedi un nuovo link' }));
+        return;
+    }
+
+    const password = el('input', { id: 'pw', type: 'password', autocomplete: 'new-password', minlength: '8', maxlength: '72', required: 'required' });
+    const invia = el('button', { type: 'submit', testo: 'Salva la password' });
+    const esito = el('div', { 'aria-live': 'polite' });
+    const form = el('form', { classe: 'modulo' },
+        el('div', { classe: 'campo' }, el('label', { for: 'pw', testo: 'Nuova password' }), password,
+            el('div', { classe: 'aiuto', testo: 'Almeno otto caratteri.' })),
+        invia, esito);
+
+    form.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        invia.disabled = true;
+        esito.replaceChildren();
+        try {
+            const dati = await api('/api/portale/reimposta-password', {
+                conToken: false,
+                method: 'POST',
+                body: JSON.stringify({ codice, password: password.value }),
+            });
+            form.replaceChildren(el('p', { classe: 'messaggio esito', testo: dati.messaggio }));
+        } catch (e) {
+            esito.replaceChildren(errore(e.message));
+            invia.disabled = false;
+        }
+    });
+
+    mostra(titolo, el('div', { classe: 'pannello' }, form),
+        el('a', { href: '#/accedi', testo: 'Torna all’accesso' }), ' · ',
+        el('a', { href: '#/recupera-password', testo: 'Richiedi un nuovo link' }));
+}
+
 /* --- area riservata ---------------------------------------------------------------- */
 
-async function vistaArea() {
-    const dati = await api('/api/me');
+async function vistaArea(signal) {
+    const dati = await api('/api/me', { signal });
 
     mostra(
         el('h1', { testo: `Buongiorno, ${dati.utente.nome}` }),
@@ -452,8 +526,8 @@ async function vistaArea() {
     );
 }
 
-async function vistaCartelle() {
-    const dati = await api('/api/cartelle');
+async function vistaCartelle(signal) {
+    const dati = await api('/api/cartelle', { signal });
 
     if (dati.elementi.length === 0) {
         mostra(el('h1', { testo: 'Cartelle' }), el('p', { testo: 'Nessuna cartella a tuo carico.' }));
@@ -485,8 +559,8 @@ async function vistaCartelle() {
     );
 }
 
-async function vistaCartella(id) {
-    const dati = await api(`/api/cartelle/${id}`);
+async function vistaCartella(id, signal) {
+    const dati = await api(`/api/cartelle/${id}`, { signal });
     const c = dati.cartella;
 
     mostra(
@@ -502,8 +576,8 @@ async function vistaCartella(id) {
     );
 }
 
-async function vistaPratiche() {
-    const dati = await api('/api/pratiche');
+async function vistaPratiche(signal) {
+    const dati = await api('/api/pratiche', { signal });
 
     const corpi = dati.elementi.map((p) =>
         el('tr', {},
@@ -528,8 +602,8 @@ async function vistaPratiche() {
     );
 }
 
-async function vistaPratica(id) {
-    const dati = await api(`/api/pratiche/${id}`);
+async function vistaPratica(id, signal) {
+    const dati = await api(`/api/pratiche/${id}`, { signal });
     const p = dati.pratica;
 
     const note = (p.note || []).map((n) =>
@@ -557,8 +631,8 @@ async function vistaPratica(id) {
     );
 }
 
-async function vistaRimborsi() {
-    const dati = await api('/api/rimborsi');
+async function vistaRimborsi(signal) {
+    const dati = await api('/api/rimborsi', { signal });
 
     const corpi = dati.elementi.map((r) =>
         el('tr', {},
@@ -593,8 +667,8 @@ async function vistaRimborsi() {
  * inserite con `innerHTML`: DIFETTO INTENZIONALE (L15, capitolo 4). Il codice che le rende è il
  * punto in cui una nota scritta male diventa codice eseguito sul browser del funzionario.
  */
-async function vistaSportello() {
-    const dati = await api('/api/sportello/pratiche');
+async function vistaSportello(signal) {
+    const dati = await api('/api/sportello/pratiche', { signal });
 
     const righe = dati.elementi.map((p) => {
         const cellaNote = el('td');
@@ -669,6 +743,8 @@ const rotte = [
     [/^#\/come-fare$/, vistaComeFare],
     [/^#\/accedi$/, vistaAccedi],
     [/^#\/registrati$/, vistaRegistrati],
+    [/^#\/recupera-password$/, vistaRecuperaPassword],
+    [/^#\/reimposta(?:\?.*)?$/, vistaReimpostaPassword],
     [/^#\/area$/, vistaArea, true],
     [/^#\/cartelle$/, vistaCartelle, true],
     [/^#\/cartella\/(\d+)$/, vistaCartella, true],
@@ -679,7 +755,12 @@ const rotte = [
     [/^#\/epilogo$/, vistaEpilogo],
 ];
 
+let navigazione;
+
 async function instrada() {
+    navigazione?.abort();
+    navigazione = new AbortController();
+    const { signal } = navigazione;
     const percorso = location.hash || '#/';
     const trovata = rotte.find(([espressione]) => espressione.test(percorso));
 
@@ -700,10 +781,10 @@ async function instrada() {
 
     try {
         const argomenti = percorso.match(trovata[0]).slice(1).map((v) => (v === undefined ? v : decodeURIComponent(v)));
-        await vista(...argomenti.map((v) => (/^\d+$/.test(v) ? Number(v) : v)));
+        await vista(...argomenti.map((v) => (/^\d+$/.test(v) ? Number(v) : v)), signal);
     } catch (e) {
         // La sessione scaduta ha già portato alla pagina di accesso con il proprio avviso.
-        if (e.sessioneScaduta) return;
+        if (signal.aborted || e.sessioneScaduta) return;
 
         mostra(el('h1', { testo: 'Si è verificato un problema' }), errore(e.message));
     }

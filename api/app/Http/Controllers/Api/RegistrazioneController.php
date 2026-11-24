@@ -60,34 +60,36 @@ class RegistrazioneController extends Controller
         $adesso = now();
         $slug = strtolower(str_replace(' ', '.', $dati['nome'].'.'.$dati['cognome']));
 
-        DB::table('contribuenti')->insert([
-            'codice_fiscale' => $cf,
-            'nome' => $dati['nome'],
-            'cognome' => $dati['cognome'],
-            'data_nascita' => $dati['data_nascita'],
-            'sesso' => $dati['sesso'],
-            'comune_nascita' => $dati['comune_nascita'],
-            'indirizzo' => $dati['indirizzo'],
-            'cap' => $dati['cap'],
-            'provincia' => strtoupper($dati['provincia']),
-            'pec' => $slug.'@pec.example.it',
-            'telefono' => null,
-            'created_at' => $adesso,
-            'updated_at' => $adesso,
-        ]);
+        $id = DB::transaction(function () use ($dati, $cf, $adesso, $slug) {
+            DB::table('contribuenti')->insert([
+                'codice_fiscale' => $cf,
+                'nome' => $dati['nome'],
+                'cognome' => $dati['cognome'],
+                'data_nascita' => $dati['data_nascita'],
+                'sesso' => $dati['sesso'],
+                'comune_nascita' => $dati['comune_nascita'],
+                'indirizzo' => $dati['indirizzo'],
+                'cap' => $dati['cap'],
+                'provincia' => strtoupper($dati['provincia']),
+                'pec' => $slug.'@pec.example.it',
+                'telefono' => null,
+                'created_at' => $adesso,
+                'updated_at' => $adesso,
+            ]);
 
-        $id = DB::table('utenti')->insertGetId([
-            'codice_fiscale' => $cf,
-            'nome' => $dati['nome'],
-            'cognome' => $dati['cognome'],
-            'email' => $dati['email'],
-            'password' => md5($dati['password']),
-            'ruolo' => 'cittadino',
-            'attivo' => true,
-            'reset_disabilitato' => false,
-            'created_at' => $adesso,
-            'updated_at' => $adesso,
-        ]);
+            return DB::table('utenti')->insertGetId([
+                'codice_fiscale' => $cf,
+                'nome' => $dati['nome'],
+                'cognome' => $dati['cognome'],
+                'email' => $dati['email'],
+                'password' => md5($dati['password']),
+                'ruolo' => 'cittadino',
+                'attivo' => true,
+                'reset_disabilitato' => false,
+                'created_at' => $adesso,
+                'updated_at' => $adesso,
+            ]);
+        });
 
         return response()->json([
             'utente' => ['id' => $id, 'codice_fiscale' => $cf, 'email' => $dati['email']],

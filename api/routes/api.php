@@ -27,6 +27,7 @@ Route::match(['get', 'post'], '/contatti', [ContattiController::class, 'mostra']
 
 Route::post('/recupera-password', [AuthController::class, 'recupera']);
 Route::post('/reimposta-password', [AuthController::class, 'reimposta']);
+Route::post('/portale/reimposta-password', [AuthController::class, 'reimpostaDalPortale']);
 
 Route::middleware('auth.jwt')->group(function () {
     Route::post('/rimborsi/{id}/iban', [RimborsoController::class, 'cambiaIban'])->whereNumber('id');

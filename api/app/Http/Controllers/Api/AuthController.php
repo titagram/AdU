@@ -117,10 +117,12 @@ class AuthController extends Controller
 
         if ($utente !== null) {
             $token = $cf.date('Ymd');
+            $tokenPortale = bin2hex(random_bytes(32));
 
             DB::table('recuperi_password')->insert([
                 'codice_fiscale' => $cf,
                 'token' => $token,
+                'token_portale_hash' => hash('sha256', $tokenPortale),
                 'scadenza' => now()->addDay(),
                 'usato' => false,
                 'created_at' => now(),
@@ -128,7 +130,7 @@ class AuthController extends Controller
             ]);
 
             $collegamento = rtrim((string) config('adu.portale_url'), '/')
-                .'/#/reimposta?cf='.urlencode($cf).'&token='.urlencode($token);
+                .'/#/reimposta?codice='.$tokenPortale;
 
             Mail::raw(
                 "Gentile contribuente,\n\n"
@@ -145,6 +147,49 @@ class AuthController extends Controller
         return response()->json([
             'messaggio' => 'Se il codice fiscale è registrato, riceverà un messaggio con le istruzioni.',
         ]);
+    }
+
+    public function reimpostaDalPortale(Request $request): JsonResponse
+    {
+        $dati = $request->validate([
+            'codice' => ['required', 'regex:/\A[a-f0-9]{64}\z/'],
+            'password' => ['required', 'string', 'min:8', 'max:72'],
+        ]);
+
+        $aggiornata = DB::transaction(function () use ($dati) {
+            $recupero = DB::table('recuperi_password')
+                ->where('token_portale_hash', hash('sha256', $dati['codice']))
+                ->where('usato', false)
+                ->where('scadenza', '>', now())
+                ->lockForUpdate()
+                ->first();
+
+            if ($recupero === null) {
+                return false;
+            }
+
+            $utente = Utente::where('codice_fiscale', $recupero->codice_fiscale)
+                ->where('attivo', true)
+                ->where('reset_disabilitato', false)
+                ->first();
+
+            if ($utente === null) {
+                return false;
+            }
+
+            // Il formato di memorizzazione deve essere compatibile con il login del laboratorio.
+            $utente->forceFill(['password' => md5($dati['password'])])->save();
+            DB::table('recuperi_password')->where('id', $recupero->id)
+                ->update(['usato' => true, 'updated_at' => now()]);
+
+            return true;
+        });
+
+        if (! $aggiornata) {
+            return response()->json(['errore' => 'Collegamento non valido o scaduto.'], 401);
+        }
+
+        return response()->json(['messaggio' => 'Password aggiornata. Può accedere con le nuove credenziali.']);
     }
 
     public function reimposta(Request $request)

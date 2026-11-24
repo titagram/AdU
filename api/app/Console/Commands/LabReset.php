@@ -25,14 +25,29 @@ class LabReset extends Command
             return self::FAILURE;
         }
 
-        File::deleteDirectory(storage_path('app/allegati'));
-        File::ensureDirectoryExists(storage_path('app/allegati'));
-
-        Artisan::call('migrate:fresh', ['--force' => true]);
+        $esito = Artisan::call('migrate:fresh', ['--force' => true]);
         $this->output->write(Artisan::output());
+        if ($esito !== self::SUCCESS) {
+            $this->error('Migrazione fallita. Il laboratorio non è stato ripristinato.');
 
-        Artisan::call('db:seed', ['--force' => true]);
+            return $esito;
+        }
+
+        $allegati = storage_path('app/allegati');
+        File::ensureDirectoryExists($allegati);
+        if (! File::cleanDirectory($allegati) || ! File::isEmptyDirectory($allegati)) {
+            $this->error('Impossibile svuotare la cartella degli allegati.');
+
+            return self::FAILURE;
+        }
+
+        $esito = Artisan::call('db:seed', ['--force' => true]);
         $this->output->write(Artisan::output());
+        if ($esito !== self::SUCCESS) {
+            $this->error('Caricamento dati fallito. Il laboratorio non è stato ripristinato.');
+
+            return $esito;
+        }
 
         $this->info('laboratorio ripristinato');
 
