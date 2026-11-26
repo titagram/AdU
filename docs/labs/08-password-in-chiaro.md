@@ -8,8 +8,8 @@ Recuperare la password di un contribuente senza attaccare il portale: leggendo i
 
 ## Dove guardare
 
-Il dump del 2019 (L19), la tabella `utenti` del database di esercizio (via `/debug?sql=`, che è
-pubblico), e il seed del laboratorio.
+Il dump del 2019 (L19), la tabella `utenti` del database di esercizio (via `/debug?sql=` quando
+il docente abilita `ADU_DEBUG_CONSOLE_ENABLED=true`), e il seed del laboratorio.
 
 ## Cosa si ottiene
 

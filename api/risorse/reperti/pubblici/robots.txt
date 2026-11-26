@@ -3,7 +3,6 @@
 User-agent: *
 Disallow: /admin
 Disallow: /backup/
-Disallow: /debug
 Disallow: /sportello/
 Allow: /
 

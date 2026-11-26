@@ -36,6 +36,7 @@ services:
       # dispositivo della tailnet, e senza questa riga il browser bloccherebbe le risposte.
       ADU_CORS_ORIGINS: "${ADU_CORS_ORIGINS:-*}"
       ADU_PORTALE_URL: "${ADU_PORTALE_URL:-http://${ADU_BIND_IP:-127.0.0.1}:8080}"
+      ADU_DEBUG_CONSOLE_ENABLED: "${ADU_DEBUG_CONSOLE_ENABLED:-false}"
     depends_on:
       db:
         condition: service_healthy

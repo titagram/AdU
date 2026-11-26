@@ -33,9 +33,12 @@ Non arriveranno. Tranne una: la scheda dell'account dimostrativo, che è l'altro
 **Artefatto:** l'URL del portale e la scheda account (non ancora usata).
 
 **Cosa emerge** (L19, L21, L24): `.git` esposto — si legge il sorgente; `/backup/` con un dump
-del 2019 e directory listing; `/debug` che stampa le ultime query; stack trace in chiaro;
-`robots.txt` che elenca `/admin`, `/backup/`, `/legacy/`, `/debug`; CORS `*`; pagina delle
+del 2019 e directory listing; stack trace in chiaro;
+`robots.txt` che elenca `/admin`, `/backup/`, `/sportello/`; CORS `*`; pagina delle
 dipendenze con librerie obsolete.
+
+La console SQL `/debug` resta spenta in questa fase: si abilita con
+`ADU_DEBUG_CONSOLE_ENABLED=true` solo nella lezione sugli hash del database in esercizio.
 
 **Il colpo di scena:** nella storia di git c'è un commit con un commento lasciato lì:
 `// rate limit disattivato per il collaudo, riattivare prima della produzione`. Non è un bug,

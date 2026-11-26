@@ -127,10 +127,10 @@ autenticazione diverso, e quindi difetti diversi.
 | `POST /api/login` | autenticazione, messaggi distinti | L22, L10 |
 | `POST /api/recupera-password` | invia il token via email | L17 |
 | `GET /sportello/verifica?protocollo=` | controllo pubblico dello stato pratica | L12 (blind e time-based) |
-| `GET /robots.txt` | elenca `/admin`, `/backup/`, `/legacy/`, `/debug` | L03, L19 |
+| `GET /robots.txt` | elenca `/admin`, `/backup/`, `/sportello/` | L03, L19 |
 | `GET /.git/...` | repository esposto | L19 |
 | `GET /backup/` | directory listing + dump del 2019 | L19 |
-| `GET /debug` | ultime query eseguite | L19 |
+| `GET /debug` | console SQL disattivata per la ricognizione iniziale; attivabile con `ADU_DEBUG_CONSOLE_ENABLED=true` | L08, L19 |
 
 ### 5.2 Area riservata del cittadino (SPA + JWT)
 
@@ -362,7 +362,7 @@ sicurezza quel diff vale più di cento slide.
 |---|---|---|
 | Enumerazione degli utenti (L22, prima parte) | `POST /api/login` | due messaggi distinti: «Codice fiscale non registrato.» e «Password errata.» |
 | `.git`, `backup/`, `robots.txt` esposti (L19) | `api` · `public/` | sorgente completo e storia dei commit, compreso quello che ha spento il rate limit |
-| Console di diagnostica e CORS `*` (L19) | `api` · `/debug`, `config/adu.php` | le ultime query con i codici fiscali degli altri; qualunque origine legge l'API |
+| Console di diagnostica opzionale e CORS `*` (L19) | `api` · `/debug`, `config/adu.php` | la console è spenta nella ricognizione iniziale e si abilita per L08; qualunque origine legge l'API |
 | Pagina delle dipendenze (L21) | `api` · `/admin/dipendenze` | librerie obsolete dichiarate, in contrasto con `composer.lock` |
 | Registro degli accessi incompleto (L24) | `api` · `log_accessi`, `/admin/log` | i tentativi falliti non esistono, l'ora è UTC senza dirlo, lo `User-Agent` torna al browser senza escape |
 | Password in MD5 (L08) | `api` · seeder, `utenti.password` | nessun sale, nessun costo: il dizionario precalcolato apre le porte |
@@ -423,9 +423,9 @@ Verificato con prove eseguite, non dichiarate:
 
 ### Capitolo 1 — ricognizione (fatto)
 
-La superficie pubblica che il copione fa esplorare per prima. Tutto ciò che gli studenti
-trovano è raggiungibile senza credenziali, e nessuno di questi elementi è simulato: il `.git`
-è un repository vero, il dump contiene schemi e hash, la console esegue SQL.
+La superficie pubblica che il copione fa esplorare per prima. Gli elementi attivi sono
+raggiungibili senza credenziali: il `.git` è un repository vero e il dump contiene schemi e
+hash. La console SQL resta assente fino al laboratorio L08.
 
 | Pezzo | Come è fatto | Dove finisce |
 |---|---|---|

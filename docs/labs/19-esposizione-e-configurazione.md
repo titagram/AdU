@@ -15,9 +15,9 @@ Il servizio `api` sulla porta `8081`. Non la SPA: il portale da solo non lascia 
 
 Il sorgente completo dell'applicazione e cinque commit di storia. Fra questi, uno che ha
 disattivato il limite ai tentativi di accesso «per il collaudo» ed è rimasto in esercizio per
-cinque mesi e mezzo. Più un dump del 2019 con gli hash delle password, la console che mostra le
-query appena eseguite (quindi i codici fiscali di chi ha fatto accesso), una pagina con le
-librerie dichiarate e un CORS aperto a qualunque origine.
+cinque mesi e mezzo. Più un dump del 2019 con gli hash delle password, una pagina con le
+librerie dichiarate e un CORS aperto a qualunque origine. La console SQL si abilita solo in una
+lezione successiva.
 
 Per chi insegna, il valore non è l'elenco: è che la prima domanda del corso — *chi ha consultato
 i dati dei rimborsi?* — trova qui la sua prima risposta parziale, e non è una risposta buona.
@@ -27,7 +27,7 @@ i dati dei rimborsi?* — trova qui la sua prima risposta parziale, e non è una
 | Riga | Cosa fa |
 |---|---|
 | `api/docker/entrypoint.sh:10-15` | copia `.git`, `backup/` e `robots.txt` dentro `public/`, cioè nel sito che Apache serve |
-| `api/routes/web.php:18` | `GET /debug`, console di diagnostica senza autenticazione |
+| `api/routes/web.php` | `GET /debug` esiste solo con `ADU_DEBUG_CONSOLE_ENABLED=true` |
 | `api/routes/web.php:20` | `GET /admin/log`, registro degli accessi **senza** controllo di ruolo |
 | `api/app/Http/Controllers/DiagnosticaController.php:34` | il parametro `?sql=` finisce in `DB::select()` senza filtri |
 | `api/app/Http/Middleware/RegistraQuery.php:11` | ogni query dell'API viene annotata su file, valori compresi |
@@ -46,8 +46,9 @@ colpo di scena del capitolo 1 verificabile invece che raccontato.
 - `/.git/index` è binario e non serve: bastano `HEAD`, `refs/heads/main` e `objects/`.
 - `/backup/` risponde con l'elenco solo perché `backup/.htaccess` attiva `Options +Indexes`.
   Senza quello il dump ci sarebbe lo stesso, ma non si troverebbe.
-- La console `/debug` mostra le query **della richiesta in corso** più le ultime annotate:
-  per vedere un codice fiscale bisogna che qualcuno abbia fatto accesso prima.
+- Quando la console `/debug` viene abilitata più avanti, mostra le query **della richiesta in
+  corso** più le ultime annotate: per vedere un codice fiscale bisogna che qualcuno abbia fatto
+  accesso prima.
 
 ## Collegamento
 

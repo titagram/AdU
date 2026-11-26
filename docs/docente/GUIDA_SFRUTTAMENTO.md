@@ -38,7 +38,7 @@ osservare** (il segnale che dice che il lab è vivo), **se non funziona** (le ca
 
 **Passi**
 
-1. `GET http://<host>:8081/robots.txt` → elenca `/admin`, `/backup/`, `/debug`, `/sportello/`.
+1. `GET http://<host>:8081/robots.txt` → elenca `/admin`, `/backup/`, `/sportello/`.
    Non è un controllo di accesso: è un elenco di cose da provare.
 2. `GET http://<host>:8081/.git/HEAD` → `ref: refs/heads/main`.
 3. Ricostruisci l'albero. Con `git-dumper http://<host>:8081/.git/ ./sorgente`, oppure con
@@ -46,14 +46,13 @@ osservare** (il segnale che dice che il lab è vivo), **se non funziona** (le ca
    del 2 aprile 2025: *«Collaudo di carico: disattiva temporaneamente il rate limit»*.
 4. `GET /backup/` → elenco della cartella; `GET /backup/dump-2019.sql` → schema vecchio e hash
    MD5 delle password.
-5. `GET /debug` → le ultime query dell'API con i valori interpolati, compresi i codici fiscali
-   di chi ha fatto accesso nei minuti precedenti.
-6. `GET /debug?sql=SELECT%20*%20FROM%20tabella_inesistente` → pagina di debug del framework con
-   stack trace, percorso dei file e variabili d'ambiente. (`/api/pratiche/abc` **non** serve:
-   risponde `404` in JSON perché la rotta è vincolata ai numeri.)
-7. Preflight con `Origin: http://esempio.invalid` → `Access-Control-Allow-Origin: *`.
-8. Apri `http://<host>:8081/debug` dentro un `<iframe>` da un'altra origine → si incastra: non
-   c'è `X-Frame-Options`, quindi quella pagina si può coprire con una pagina dell'attaccante.
+5. Preflight con `Origin: http://esempio.invalid` → `Access-Control-Allow-Origin: *`.
+
+La console `/debug` è assente nella ricognizione iniziale. Per il laboratorio L08, il docente
+imposta `ADU_DEBUG_CONSOLE_ENABLED=true` nel `.env` della Compose e ricrea `api` con
+`docker compose up -d --force-recreate api`. Solo allora la pagina mostra le ultime query
+dell'API e permette di interrogare il database in esercizio. Una query non valida, con
+`APP_DEBUG=true`, restituisce anche lo stack trace del framework.
 
 **Cosa osservare:** il `.git` non è un file finto, è un repository vero: chi lo ricostruisce ha
 il sorgente di oggi *e* la storia. Il dump del 2019 ha uno schema diverso da quello attuale
@@ -155,7 +154,7 @@ forza bruta.
 **Stato:** provato il 20 novembre 2026.
 ## L08 — Hash deboli e password riutilizzate `[verificato]`
 
-**Prerequisiti:** nessuno; il dump del 2019 è in L19.
+**Prerequisiti:** il dump del 2019 è in L19; il docente ha abilitato la console `/debug`.
 
 **Passi**
 

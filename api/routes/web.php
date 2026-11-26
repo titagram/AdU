@@ -13,8 +13,12 @@ Route::get('/', fn () => response()->json([
     'stato' => 'ok',
 ]));
 
-// DIFETTO INTENZIONALE (L19): le due pagine che il capitolo 1 fa trovare. Nessuna
-// autenticazione, esattamente come sono arrivate in produzione.
-Route::get('/debug', [DiagnosticaController::class, 'console']);
+// La console SQL è un laboratorio successivo: nella ricognizione iniziale la route
+// non esiste. Quando il docente la abilita, resta volutamente pubblica.
+if (config('adu.debug_console_enabled')) {
+    Route::get('/debug', [DiagnosticaController::class, 'console']);
+}
+
+// Queste pagine restano scopribili durante la ricognizione iniziale.
 Route::get('/admin/dipendenze', [DiagnosticaController::class, 'dipendenze']);
 Route::get('/admin/log', [DiagnosticaController::class, 'registro']);

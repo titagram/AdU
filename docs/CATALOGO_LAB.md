@@ -57,7 +57,7 @@ Legenda colonne:
 
 | ID | Titolo | Cap. | Dove | Si ottiene | Seed |
 |---|---|---|---|---|---|
-| L19 | Esposizione e configurazione | 1 | `web`, `api` · `/.git`, `/robots.txt`, `/backup/`, `/debug`, CORS | sorgente completo, dump del 2019, query SQL, stack trace, XSS cross-origin | `.git` finto con una storia plausibile; dump del 2019 in `/backup/`; `Access-Control-Allow-Origin: *` |
+| L19 | Esposizione e configurazione | 1 | `web`, `api` · `/.git`, `/robots.txt`, `/backup/`, CORS | sorgente completo, dump del 2019, stack trace, XSS cross-origin | `.git` finto con una storia plausibile; dump del 2019 in `/backup/`; `Access-Control-Allow-Origin: *`; `/debug` si abilita più avanti |
 | L20 | Credenziali predefinite | 6 | `anagrafe` · `/admin` | archivio completo dei contribuenti | `admin/admin` attivo **solo** qui (I2) |
 
 ## A06 — Vulnerable and Outdated Components

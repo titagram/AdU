@@ -40,7 +40,7 @@ prevedibile. Lo sportello del 2019 entra in scena come secondo sistema di autent
 
 **Capitolo 1 — la ricognizione.** Lo stack a sette servizi funziona, il portale del cittadino
 si usa, e la superficie pubblica è quella che il corso fa esplorare per prima: `.git` esposto,
-backup del 2019, console di diagnostica, `robots.txt`, CORS aperto, registro degli accessi
+backup del 2019, `robots.txt`, CORS aperto, registro degli accessi
 incompleto. Il quadro puntuale delle verifiche è in [`docs/DESIGN.md`](docs/DESIGN.md) §14.
 
 | Milestone | Contenuto |
@@ -134,6 +134,13 @@ il portale, altrimenti il browser blocca le risposte dell'API.
 
 Le email di recupero usano l'indirizzo indicato da `ADU_BIND_IP` sulla porta `8080`. Se apri il
 portale da un URL diverso, imposta anche `ADU_PORTALE_URL` con l'URL che usano gli studenti.
+
+La console SQL `/debug` è disattivata durante la ricognizione iniziale e non è elencata in
+`robots.txt`. Per il laboratorio successivo che la usa, imposta
+`ADU_DEBUG_CONSOLE_ENABLED=true` nel `.env` della Compose e ricrea il servizio `api` con
+`docker compose up -d --force-recreate api`. Riportando il valore a `false` e ricreando il
+servizio, la route torna assente. Le altre vulnerabilità intenzionali non dipendono da questa
+impostazione.
 
 Due trappole, entrambe già viste:
 

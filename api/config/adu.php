@@ -17,4 +17,8 @@ return [
     'portale_url' => env('ADU_PORTALE_URL', 'http://127.0.0.1:8080'),
 
     'cors_origins' => explode(',', env('ADU_CORS_ORIGINS', '*')),
+
+    // La console SQL resta spenta durante la ricognizione iniziale e si abilita solo
+    // quando il docente vuole affrontare il laboratorio sui dati in esercizio.
+    'debug_console_enabled' => (bool) env('ADU_DEBUG_CONSOLE_ENABLED', false),
 ];
